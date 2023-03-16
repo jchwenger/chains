@@ -3,6 +3,7 @@ let fontRegular, fontItalic, fontBold;
 let lineHeight, charWidth, margins;
 let lineIndex, totalLines;
 let whiteSpaceToCrop;
+let currentLine;
 
 function preload() {
   fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
@@ -27,11 +28,16 @@ function setup() {
     .strokeWeight(0)
     .textSize(canvasSize/10);
 
+  lineIndex = 0;
+  for (l of lines) {
+    if (l.match(/[¬|]$/)) break;
+    lineIndex++;
+  }
+  currentLine = lines[lineIndex];
 
   charWidth = canvasSize/18;
   margins = charWidth * 2;
   lineHeight = canvasSize/15;
-  lineIndex = 0;
   totalLines = lines.length;
   whiteSpaceToCrop = 0;
 
@@ -48,20 +54,21 @@ function draw() {
   rect(0,0, width, height, 5);
   pop();
 
-  // case: first line
-  if (lineIndex === 0) {
+  // case: two-lines split
+  currentLine = lines[lineIndex];
+  // console.log(`currentLine: ${currentLine}`);
+  if (currentLine[currentLine.length-1] === "¬") {
     writeLine(lineIndex, height/2)
-    if (lines[lineIndex + 1].startsWith(" ")) {
-      writeLine(lineIndex + 1, height/2 + lineHeight)
-    }
-  // case: last line
-  } else if (lineIndex >= (totalLines - 2)) {
-    writeLine(lineIndex, height/2)
-  // case: all others
-  } else {
+    writeLine(lineIndex + 1, height/2 + lineHeight)
+  // case: three-lines split
+  } else if (currentLine[currentLine.length-1] === "|") {
+    // console.log("three lines split");
     writeLine(lineIndex - 1, height/2 - lineHeight)
     writeLine(lineIndex, height/2)
     writeLine(lineIndex + 1, height/2 + lineHeight)
+  // case: one currentLine
+  } else {
+    writeLine(lineIndex, height/2)
   }
 
 }
@@ -77,22 +84,36 @@ function writeLine(i, h) {
 
 function keyPressed() {
   if (key === " ") {
+    console.log(`previous text: "${lines[lineIndex]}"`);
+    while (!lines[lineIndex + 1].match(/[¬|]$/)) {
+      lineIndex = (lineIndex + 1) % totalLines;
+      console.log(`skipping: "${lines[lineIndex]}"`);
+    }
     lineIndex = (lineIndex + 1) % totalLines;
+    currentLine = lines[lineIndex];
     console.log(`pressed key '${key}', lineIndex = ${lineIndex}`);
-    console.log(`text: "${lines[lineIndex]}"`);
+    console.log(`text: "${currentLine}"`);
 
-    // case: first line
-    if (lineIndex === 0) {
-      whiteSpaceToCrop = 0;
-    // case: last line
-    } else if (lineIndex >= (totalLines - 2)) {
-      whiteSpaceToCrop = 0;
+    // case: two-lines split: the main line is the basis for cropping
+    if (currentLine[currentLine.length - 1] === "¬") {
+      whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
+      console.log("two-lines");
+      console.log(`"${lines[lineIndex]}"`);
+      console.log(`"${lines[lineIndex + 1]}"`);
+      console.log("--------------------");
+    // case: three-lines split: the previous line is the basis for cropping
+    } else if (currentLine[currentLine.length - 1] === "|") {
+      whiteSpaceToCrop = lines[lineIndex - 1].search(/\S|$/);
+      console.log("three-lines");
+      console.log(`"${lines[lineIndex - 1]}"`);
+      console.log(`"${lines[lineIndex]}"`);
+      console.log(`"${lines[lineIndex + 1]}"`);
+      console.log("--------------------");
     // case: all others
     } else {
-      i =  lines[lineIndex - 1].search(/\S|$/);
-      console.log(`to crop: ${i}`);
-      whiteSpaceToCrop = i;
+      whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
     }
+    console.log(`to crop: ${whiteSpaceToCrop}`);
 
   }
 }
