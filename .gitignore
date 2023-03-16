@@ -1,0 +1,7 @@
+# vim
+
+*.sw*
+
+
+# p5, for now
+addons
