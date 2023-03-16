@@ -5,6 +5,7 @@ let lineIndex, totalLines;
 let whiteSpaceToCrop;
 
 function preload() {
+  fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   fontRegular = loadFont('assets/fonts/LinBiolinum_R.otf');
   fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
   fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
@@ -20,7 +21,7 @@ function setup() {
   //   if (el) console.log(el);
   // }
 
-  textFont(fontRegular);
+  textFont(fontMono);
   textAlign(CENTER);
   fill(0)
     .strokeWeight(0)
