@@ -10,12 +10,17 @@ function preload() {
   fontRegular = loadFont('assets/fonts/LinBiolinum_R.otf');
   fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
   fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
+  // lines = loadStrings('assets/bras-de-fer-de-lance.chain.txt');
   lines = loadStrings('assets/anothering.chain.txt');
 }
 
 function setup() {
   const canvasSize = 500;
   createCanvas(canvasSize, canvasSize);
+
+  // remove last empty line if there is one
+  lines = lines.filter(l => l.length > 0);
+  // console.log(lines);
 
   // console.log(lines);
   // for (const el of lines) {
@@ -84,36 +89,53 @@ function writeLine(i, h) {
 
 function keyPressed() {
   if (key === " ") {
-    console.log(`previous text: "${lines[lineIndex]}"`);
-    while (!lines[lineIndex + 1].match(/[¬|]$/)) {
-      lineIndex = (lineIndex + 1) % totalLines;
-      console.log(`skipping: "${lines[lineIndex]}"`);
+
+    // console.log(`lineIndex: ${lineIndex}/${totalLines}, previous text: "${lines[lineIndex]}"`);
+
+    // // if at the end, rewind
+    // if (lineIndex >= totalLines - 1) {
+    //   lineIndex = 0;
+    //   console.log(`line index: "${lines[lineIndex]}"`);
+    // }
+
+    // move forward until we encounter ¬ or | at the end of the line
+    while (lineIndex < totalLines - 2 && !lines[lineIndex + 1].match(/[¬|]$/)) {
+      lineIndex = lineIndex + 1;
+      // console.log(`${lineIndex}/${totalLines}, skipping: "${lines[lineIndex]}"`);
     }
-    lineIndex = (lineIndex + 1) % totalLines;
+
+    lineIndex = (lineIndex + 1) % (totalLines - 1);
     currentLine = lines[lineIndex];
-    console.log(`pressed key '${key}', lineIndex = ${lineIndex}`);
-    console.log(`text: "${currentLine}"`);
+
+    // console.log(`${lineIndex}/${totalLines}, current: "${lines[lineIndex]}"`);
+    // console.log(`pressed key '${key}', lineIndex = ${lineIndex}`);
+    // console.log(`text: "${currentLine}"`);
 
     // case: two-lines split: the main line is the basis for cropping
     if (currentLine[currentLine.length - 1] === "¬") {
       whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
-      console.log("two-lines");
-      console.log(`"${lines[lineIndex]}"`);
-      console.log(`"${lines[lineIndex + 1]}"`);
-      console.log("--------------------");
+
+      // console.log(`${lineIndex}/${totalLines}, two-lines`);
+      // console.log(`${lineIndex}, ${lines[lineIndex]}"`);
+      // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
+      // console.log("--------------------");
+
     // case: three-lines split: the previous line is the basis for cropping
     } else if (currentLine[currentLine.length - 1] === "|") {
       whiteSpaceToCrop = lines[lineIndex - 1].search(/\S|$/);
-      console.log("three-lines");
-      console.log(`"${lines[lineIndex - 1]}"`);
-      console.log(`"${lines[lineIndex]}"`);
-      console.log(`"${lines[lineIndex + 1]}"`);
-      console.log("--------------------");
+
+      // console.log(`${lineIndex}/${totalLines}, three-lines:`);
+      // console.log(`${lineIndex - 1}, ${lines[lineIndex - 1]}"`);
+      // console.log(`${lineIndex}, ${lines[lineIndex]}`);
+      // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
+      // console.log("--------------------");
+
     // case: all others
     } else {
       whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
     }
-    console.log(`to crop: ${whiteSpaceToCrop}`);
+
+    // console.log(`to crop: ${whiteSpaceToCrop}`);
 
   }
 }
