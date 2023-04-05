@@ -9,3 +9,4 @@
 - single font size based on display size, scrolling with stops at transitions!
 - transition animations?
 - interactivity/user input?
+- zoom with two touches?
