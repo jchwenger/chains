@@ -2,14 +2,14 @@
 let fontRegular, fontItalic, fontBold;
 let lineHeight, charWidth, margins;
 let lineIndex, totalLines;
-let whiteSpaceToCrop;
 let currentTextSize;
-let currentLine, currentLines;
+let currentLine;
+let processedLines;
 let widestChar, charZoomFactor;
 
 let initCursor;
 let currentShift;
-let horizontalShift;
+let horizontalShift, verticalShift;
 
 class Cursor {
   constructor(x, y) {
@@ -33,15 +33,13 @@ function setup() {
 
   // remove last empty line if there is one
   lines = lines.filter(l => l.length > 0);
-  // console.log(lines);
 
-  // console.log(lines);
   // for (const el of lines) {
   //   if (el) console.log(el);
   // }
 
   textFont(fontRegular);
-  textAlign(LEFT);
+  textAlign(CENTER);
 
   currentTextSize = canvasSize/10;
   fill(0)
@@ -52,6 +50,7 @@ function setup() {
   // console.log(`cursor: ${JSON.stringify(initCursor)}`);
 
   horizontalShift = 0;
+  verticalShift = 0;
   currentShift = 0;
 
   // find the max charWidth of the current lines
@@ -68,15 +67,8 @@ function setup() {
   whiteSpaceToCrop = 0;
 
   lineIndex = 0;
-  currentLine = lines[lineIndex];
-  // console.log(currentLine);
-
-  loopForward();
-  // adjustTextSize();
-  // for (l of lines) {
-  //   if (l.match(/[¬|]$/)) break;
-  //   lineIndex++;
-  // }
+  processedLines = prepareLines();
+  // console.log(processedLines);
 
 }
 
@@ -99,177 +91,116 @@ function draw() {
   rect(0,0, width, height, 5);
   pop();
 
-  // case: two-lines split
-  // currentLine = lines[lineIndex];
-  // console.log(`currentLine: ${currentLine}`);
-
-  // if (currentLine[currentLine.length-1] === "¬") {
-  //   writeLine(lineIndex, height/2)
-  //   writeLine(lineIndex + 1, height/2 + lineHeight)
-  // // case: three-lines split
-  // } else if (currentLine[currentLine.length-1] === "|") {
-  //   // console.log("three lines split");
-  //   writeLine(lineIndex - 1, height/2 - lineHeight)
-  //   writeLine(lineIndex, height/2)
-  //   writeLine(lineIndex + 1, height/2 + lineHeight)
-  // // case: one currentLine
-  // } else {
-  //   writeLine(lineIndex, height/2)
-  // }
-
-  for (let i = 0; i < currentLines.length; i++) {
-    writeLine(currentLines[i], height/3 + i * lineHeight);
+  for (let i = 0; i < processedLines[lineIndex].length; i++) {
+    writeLine(processedLines[lineIndex][i], height/3 + i * lineHeight);
   }
 
 }
 
 // function writeLine(i, h) {
 function writeLine(line, h) {
-  // const l = lines[i]
-  //             .slice(whiteSpaceToCrop, lines[i].length)
-  //             .replace(/[¬\|]$/, "");
   push();
   const cS = Math.min(0, currentShift + horizontalShift);
+  const vS = Math.min(0, verticalShift);
+  // console.log(`current horizontal shift: ${cS} | vertical shift: ${vS}`);
   translate(cS, 0);
   for (let j = 0; j < line.length; j++) {
-    text(line[j], margins + charWidth*j, h);
+    text(line[j], margins + charWidth*j, h + vS);
   }
   pop();
 }
 
-function cropLine(l, toCrop) {
-  return l.slice(toCrop, l.length)
-          .replace(/[¬\|]$/, "");
+function cleanLine(l) {
+  return l.replace(/[¬\|]$/, "");
 }
 
-function updateCurrentLines(i, nLines, toCrop) {
-
+function getCurrentLines(i, nLines) {
+  let l = [];
   if (nLines === 1) {
-    currentLines = [cropLine(lines[i], toCrop)];
+    l.push(cleanLine(lines[i]));
   } else if (nLines === 2) {
-    currentLines = [
-      cropLine(lines[i], toCrop),
-      cropLine(lines[i+1], toCrop),
-    ];
+    l.push(cleanLine(lines[i]))
+    l.push(cleanLine(lines[i+1]));
   } else if (nLines === 3) {
-    currentLines = [
-      cropLine(lines[i-1], toCrop),
-      cropLine(lines[i], toCrop),
-      cropLine(lines[i+1], toCrop),
-    ];
+    l.push(cleanLine(lines[i-1]));
+    l.push(cleanLine(lines[i]));
+    l.push(cleanLine(lines[i+1]));
   }
-
+  return l;
 }
 
-function adjustTextSize() {
 
-  // find the longest line
-  const longestLine = currentLines.reduce(
-    (l1, l2) => l1.length > l2.length ? l1 : l2
-  )
+function prepareLines() {
+  const pLines = [];
 
-  let tW = charWidth * (longestLine.length - 1);
+  // trick to make sure the first line is properly handled
+  let lIndex = -1;
+  let cLine;
 
-  const innerCW = canvasSize - 2 * margins - charWidth;
-  // console.log(`canvas size - margins: ${innerCW}`);
-  // console.log(`currentTextSize: ${currentTextSize}, longest line: ${longestLine}, width: ${tW}`);
+  // loop until we reach the end
+  while (lIndex < totalLines - 2) {
 
-  // make it smaller
-  if (tW > innerCW) {
-
-    while (tW > innerCW) {
-      currentTextSize -= 0.1;
-      // lineHeight -= 0.1;
-      // console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
-      textSize(currentTextSize);
-      tW = charWidth * (longestLine.length - 1);
-      charWidth = textWidth(widestChar) * charZoomFactor;
+    // move forward until we encounter ¬ or | at the end of the line
+    while (lIndex < totalLines - 2 && !lines[lIndex + 1].match(/[¬|]$/)) {
+      lIndex = lIndex + 1;
     }
 
-  // make it bigger
-  } else {
+    lIndex = lIndex + 1;
+    cLine = lines[lIndex];
 
-    while (tW < innerCW) {
-      currentTextSize += 0.1;
-      // lineHeight += 0.1;
-      // console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
-      textSize(currentTextSize);
-      tW = charWidth * (longestLine.length - 1);
-      charWidth = textWidth(widestChar) * charZoomFactor;
+    // CASE: two-lines split: the main line is the basis for cropping
+    if (cLine[cLine.length - 1] === "¬") {
+      pLines.push(getCurrentLines(lIndex, 2));
+
+    // CASE: three-lines split: the previous line is the basis for cropping
+    } else if (cLine[cLine.length - 1] === "|") {
+      pLines.push(getCurrentLines(lIndex, 3));
+
+    // CASE: all others
+    } else {
+      pLines.push(getCurrentLines(lIndex, 1));
     }
 
   }
-}
 
-function loopForward() {
-  // console.log(`lineIndex: ${lineIndex}/${totalLines}, previous text: "${lines[lineIndex]}"`);
-
-  // // if at the end, rewind
-  // if (lineIndex >= totalLines - 1) {
-  //   lineIndex = 0;
-  //   console.log(`line index: "${lines[lineIndex]}"`);
+  // console.log("========================================");
+  // console.log("pLines:");
+  // for (const g of pLines) {
+  //   for (const l of g) {
+  //     console.log(l);
+  //   }
+  //   console.log("---");
   // }
+  // console.log("========================================");
 
-  // move forward until we encounter ¬ or | at the end of the line
-  while (lineIndex < totalLines - 2 && !lines[lineIndex + 1].match(/[¬|]$/)) {
-    lineIndex = lineIndex + 1;
-    // console.log(`${lineIndex}/${totalLines}, skipping: "${lines[lineIndex]}"`);
-  }
-
-  lineIndex = (lineIndex + 1) % (totalLines - 1);
-  currentLine = lines[lineIndex];
-
-  // console.log(`${lineIndex}/${totalLines}, current: "${lines[lineIndex]}"`);
-  // console.log(`pressed key '${key}', lineIndex = ${lineIndex}`);
-  // console.log(`text: "${currentLine}"`);
-
-  // CASE: two-lines split: the main line is the basis for cropping
-  if (currentLine[currentLine.length - 1] === "¬") {
-    whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
-    updateCurrentLines(lineIndex, 2, whiteSpaceToCrop);
-
-    // console.log(`${lineIndex}/${totalLines}, two-lines`);
-    // console.log(`${lineIndex}, ${lines[lineIndex]}"`);
-    // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
-    // console.log("--------------------");
-
-  // CASE: three-lines split: the previous line is the basis for cropping
-  } else if (currentLine[currentLine.length - 1] === "|") {
-    whiteSpaceToCrop = lines[lineIndex - 1].search(/\S|$/);
-    updateCurrentLines(lineIndex, 3, whiteSpaceToCrop);
-
-    // console.log(`${lineIndex}/${totalLines}, three-lines:`);
-    // console.log(`${lineIndex - 1}, ${lines[lineIndex - 1]}"`);
-    // console.log(`${lineIndex}, ${lines[lineIndex]}`);
-    // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
-    // console.log("--------------------");
-
-  // CASE: all others
-  } else {
-    whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
-    updateCurrentLines(lineIndex, 1, whiteSpaceToCrop);
-  }
-
-  // console.log(`to crop: ${whiteSpaceToCrop}`);
-
+  return pLines;
 }
 
 function keyPressed() {
-  if (key === " ") {
-    loopForward();
-    // adjustTextSize();
+  if (keyIsDown(SHIFT)) {
+    // with shift, move backward
+    if (key === " ") {
+      lineIndex = (lineIndex - 1) % (processedLines.length - 1);
+    }
+  } else {
+    // move forward
+    if (key === " ") {
+      lineIndex = (lineIndex + 1) % (processedLines.length - 1);
+    }
   }
 
   if (key === "d") {
-    // adjustTextSize();
   }
 
 }
+
+// ----------------------------------------
+// scrolling mechanism
 
 function mousePressed() {
   initCursor.x = mouseX;
   initCursor.y = mouseY;
-  console.log(`Mouse pressed: ${JSON.stringify(initCursor)}`);
+  // console.log(`Mouse pressed: ${JSON.stringify(initCursor)}`);
 }
 
 function mouseReleased() {
@@ -285,7 +216,8 @@ function mouseDragged() {
     initCursor.x = mouseX;
   }
 
-  console.log(`current shift: ${currentShift} | init: ${initCursor.x}, now: ${mouseX} -> ${-(initCursor.x - mouseX)}`);
+  // console.log(`current horizontal shift: ${currentShift} | init: ${initCursor.x}, now: ${mouseX} -> ${horizontalShift}`);
+  // console.log(`current vertical shift: ${verticalShift}`);
 }
 
 function updateCurrentShift(h) {
