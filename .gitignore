@@ -8,3 +8,6 @@ addons
 # assets
 !sketch
 sketch/assets/*.txt
+
+# ctags
+tags
