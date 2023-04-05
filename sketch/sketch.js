@@ -6,6 +6,7 @@ let currentTextSize;
 let currentLine;
 let processedLines;
 let widestChar, charZoomFactor;
+let transitionLeft, transitionRight;
 
 let initCursor;
 let currentShift;
@@ -67,8 +68,13 @@ function setup() {
   whiteSpaceToCrop = 0;
 
   lineIndex = 0;
+  // processedLines is an array of objects:
+  // { "ws": length of minimum leading white space for each group, "l": group (array) of lines }
   processedLines = prepareLines();
   // console.log(processedLines);
+
+  transitionLeft = null;
+  transitionRight = - (processedLines[lineIndex + 1].ws * charWidth);
 
 }
 
@@ -91,18 +97,26 @@ function draw() {
   rect(0,0, width, height, 5);
   pop();
 
-  for (let i = 0; i < processedLines[lineIndex].length; i++) {
-    writeLine(processedLines[lineIndex][i], height/3 + i * lineHeight);
+  for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
+    writeLine(processedLines[lineIndex].l[i], height/3 + i * lineHeight);
   }
 
 }
 
-// function writeLine(i, h) {
 function writeLine(line, h) {
   push();
   const cS = Math.min(0, currentShift + horizontalShift);
   const vS = Math.min(0, verticalShift);
-  // console.log(`current horizontal shift: ${cS} | vertical shift: ${vS}`);
+
+  if (lineIndex < processedLines.length - 2) {
+    const transition = - (processedLines[lineIndex + 1].ws * charWidth);
+    console.log(`current horizontal shift: ${cS} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
+    if (cS < transition) {
+      lineIndex = (lineIndex + 1) % (processedLines.length - 1);
+      console.log("transition!");
+    }
+  }
+
   translate(cS, 0);
   for (let j = 0; j < line.length; j++) {
     text(line[j], margins + charWidth*j, h + vS);
@@ -132,9 +146,7 @@ function getCurrentLines(i, nLines) {
 
 function prepareLines() {
   const pLines = [];
-
-  // trick to make sure the first line is properly handled
-  let lIndex = -1;
+  let lIndex = -1; // trick to make sure the first line is properly handled
   let cLine;
 
   // loop until we reach the end
@@ -147,18 +159,28 @@ function prepareLines() {
 
     lIndex = lIndex + 1;
     cLine = lines[lIndex];
+    const whiteSpaceToCrop = cLine.search(/\S|$/);
 
     // CASE: two-lines split: the main line is the basis for cropping
     if (cLine[cLine.length - 1] === "¬") {
-      pLines.push(getCurrentLines(lIndex, 2));
+      pLines.push({
+        "ws": whiteSpaceToCrop,
+        "l": getCurrentLines(lIndex, 2)
+      });
 
     // CASE: three-lines split: the previous line is the basis for cropping
     } else if (cLine[cLine.length - 1] === "|") {
-      pLines.push(getCurrentLines(lIndex, 3));
+      pLines.push({
+        "ws": whiteSpaceToCrop,
+        "l": getCurrentLines(lIndex, 3)
+      });
 
     // CASE: all others
     } else {
-      pLines.push(getCurrentLines(lIndex, 1));
+      pLines.push({
+        "ws": whiteSpaceToCrop,
+        "l": getCurrentLines(lIndex, 1)
+      });
     }
 
   }
@@ -189,9 +211,6 @@ function keyPressed() {
     }
   }
 
-  if (key === "d") {
-  }
-
 }
 
 // ----------------------------------------
@@ -209,6 +228,7 @@ function mouseReleased() {
 }
 
 function mouseDragged() {
+
   horizontalShift = - (initCursor.x - mouseX);
 
   // if we reached the left limit, any move right shifts
