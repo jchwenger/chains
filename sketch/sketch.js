@@ -7,6 +7,17 @@ let currentTextSize;
 let currentLine, currentLines;
 let widestChar, charZoomFactor;
 
+let initCursor;
+let currentShift;
+let horizontalShift;
+
+class Cursor {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
 function preload() {
   fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   fontRegular = loadFont('assets/fonts/LinBiolinum_R.otf');
@@ -30,13 +41,18 @@ function setup() {
   // }
 
   textFont(fontRegular);
-  textAlign(CENTER);
+  textAlign(LEFT);
 
   currentTextSize = canvasSize/10;
   fill(0)
     .strokeWeight(0)
     .textSize(currentTextSize);
 
+  initCursor = new Cursor(mouseX, mouseY);
+  // console.log(`cursor: ${JSON.stringify(initCursor)}`);
+
+  horizontalShift = 0;
+  currentShift = 0;
 
   // find the max charWidth of the current lines
   widestChar = Array.from(new Set(lines.join("").split("")))
@@ -56,6 +72,7 @@ function setup() {
   // console.log(currentLine);
 
   loopForward();
+  // adjustTextSize();
   // for (l of lines) {
   //   if (l.match(/[¬|]$/)) break;
   //   lineIndex++;
@@ -111,9 +128,13 @@ function writeLine(line, h) {
   // const l = lines[i]
   //             .slice(whiteSpaceToCrop, lines[i].length)
   //             .replace(/[¬\|]$/, "");
+  push();
+  const cS = Math.min(0, currentShift + horizontalShift);
+  translate(cS, 0);
   for (let j = 0; j < line.length; j++) {
     text(line[j], margins + charWidth*j, h);
   }
+  pop();
 }
 
 function cropLine(l, toCrop) {
@@ -149,28 +170,34 @@ function adjustTextSize() {
 
   let tW = charWidth * (longestLine.length - 1);
 
-  const innerCW = canvasSize - 2 * margins - 5;
-  console.log(`canvas size - margins: ${innerCW}`);
-  console.log(`currentTextSize: ${currentTextSize}, longest line: ${longestLine}, width: ${tW}`);
+  const innerCW = canvasSize - 2 * margins - charWidth;
+  // console.log(`canvas size - margins: ${innerCW}`);
+  // console.log(`currentTextSize: ${currentTextSize}, longest line: ${longestLine}, width: ${tW}`);
 
+  // make it smaller
   if (tW > innerCW) {
-    // console.log("bigger");
+
     while (tW > innerCW) {
-      currentTextSize--;
-      console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
+      currentTextSize -= 0.1;
+      // lineHeight -= 0.1;
+      // console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
       textSize(currentTextSize);
       tW = charWidth * (longestLine.length - 1);
       charWidth = textWidth(widestChar) * charZoomFactor;
     }
+
+  // make it bigger
   } else {
-    // console.log("smaller");
+
     while (tW < innerCW) {
-      currentTextSize++;
-      console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
+      currentTextSize += 0.1;
+      // lineHeight += 0.1;
+      // console.log(`text width ${tW}, currentTextSize: ${currentTextSize}, inner canvas: ${innerCW}`);
       textSize(currentTextSize);
       tW = charWidth * (longestLine.length - 1);
       charWidth = textWidth(widestChar) * charZoomFactor;
     }
+
   }
 }
 
@@ -206,7 +233,7 @@ function loopForward() {
     // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
     // console.log("--------------------");
 
-    // CASE: three-lines split: the previous line is the basis for cropping
+  // CASE: three-lines split: the previous line is the basis for cropping
   } else if (currentLine[currentLine.length - 1] === "|") {
     whiteSpaceToCrop = lines[lineIndex - 1].search(/\S|$/);
     updateCurrentLines(lineIndex, 3, whiteSpaceToCrop);
@@ -217,7 +244,7 @@ function loopForward() {
     // console.log(`${lineIndex + 1}, ${lines[lineIndex + 1]}"`);
     // console.log("--------------------");
 
-    // CASE: all others
+  // CASE: all others
   } else {
     whiteSpaceToCrop = lines[lineIndex].search(/\S|$/);
     updateCurrentLines(lineIndex, 1, whiteSpaceToCrop);
@@ -230,10 +257,38 @@ function loopForward() {
 function keyPressed() {
   if (key === " ") {
     loopForward();
+    // adjustTextSize();
   }
 
   if (key === "d") {
-    adjustTextSize();
+    // adjustTextSize();
   }
 
+}
+
+function mousePressed() {
+  initCursor.x = mouseX;
+  initCursor.y = mouseY;
+  console.log(`Mouse pressed: ${JSON.stringify(initCursor)}`);
+}
+
+function mouseReleased() {
+  updateCurrentShift(horizontalShift);
+  horizontalShift = 0;
+}
+
+function mouseDragged() {
+  horizontalShift = - (initCursor.x - mouseX);
+
+  // if we reached the left limit, any move right shifts
+  if (mouseX > initCursor.x && currentShift === 0) {
+    initCursor.x = mouseX;
+  }
+
+  console.log(`current shift: ${currentShift} | init: ${initCursor.x}, now: ${mouseX} -> ${-(initCursor.x - mouseX)}`);
+}
+
+function updateCurrentShift(h) {
+  currentShift += horizontalShift;
+  currentShift = Math.min(0, currentShift);
 }
