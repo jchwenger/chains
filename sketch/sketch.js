@@ -1,35 +1,36 @@
-// https://p5js.org/reference/#/p5/textFont
-let fontRegular, fontItalic, fontBold;
-let lineHeight, charWidth
 let margins;
-let leftBoundary;
-let rightBoundary;
-let lineIndex, totalLines;
-let currentTextSize;
-let currentLine;
-let processedLines;
-let charZoomFactor;
-let transitionLeft, transitionRight;
-let longestLength;
-let maxTextWidth;
 let halfWidth;
 
+// text business
+// https://p5js.org/reference/#/p5/textFont
+let lines;
+let fontRegular;
+let fontItalic;
+let fontBold;
+let lineHeight
+let lineIndex;
+let currentTextSize;
+let charWidth;
+let charZoomFactor;
+let processedLines;
+
+// scrolling
+// ---------
+// physics system
+let previousMouseX;
 let xPosition;
 let velocity;
 let friction;
 let dragging;
 
-let previousMouseX;
-let initCursor;
-let currentShift;
-let horizontalShift, verticalShift;
+// limits & transitions
+let leftBoundary;
+let rightBoundary;
+let transitionLeft
+let transitionRight;
+let maxTextWidth;
 
-class Cursor {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
-}
+let verticalShift;
 
 function preload() {
   fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
@@ -43,8 +44,6 @@ function preload() {
 function setup() {
   canvasSize = 500;
   createCanvas(canvasSize, canvasSize);
-
-  halfWidth = width/2;
 
   // remove last empty line if there is one
   lines = lines.filter(l => l.length > 0);
@@ -60,24 +59,19 @@ function setup() {
   fill(0)
   textSize(currentTextSize);
 
-  initCursor = new Cursor(mouseX, mouseY);
-  // console.log(`cursor: ${JSON.stringify(initCursor)}`);
-
-  horizontalShift = 0;
   verticalShift = 0;
-  currentShift = 0;
 
   // find the max charWidth of the current lines
   const widestChar = Array.from(new Set(lines.join("").split("")))
     .reduce((char1, char2) => textWidth(char1) > textWidth(char2) ? char1 : char2);
 
-  // charWidth = canvasSize/18;
   charZoomFactor = 1;
   charWidth = textWidth(widestChar) * charZoomFactor;
 
   margins = charWidth * 2;
+  halfWidth = width/2;
+
   lineHeight = canvasSize/15;
-  totalLines = lines.length;
   whiteSpaceToCrop = 0;
 
   xPosition = margins;
@@ -86,19 +80,18 @@ function setup() {
   previousMouseX;
   friction = 0.95;
 
-
   lineIndex = 0;
   // processedLines is an array of objects:
   // { "ws": length of minimum leading white space for each group, "l": group (array) of lines }
   processedLines = prepareLines();
   // console.log(processedLines);
 
-  transitionLeft = 0; // processedLines[0].ws * charWidth;
+  // TODO: is there a more elegant logic handling margins here?
+  transitionLeft = 0;
   transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
 
   const lastGroup = processedLines[processedLines.length - 1].l;
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
-  // console.log(`longestLength: ${longestLength}`);
 
   // Calculate text width and boundaries
   leftBoundary = margins;
@@ -110,21 +103,7 @@ function setup() {
 function draw() {
   background(255);
 
-  // canvas frame
-  push();
-  noFill();
-  stroke(255,0,0);
-  strokeWeight(2);
-  rect(0,0, width, height, 5);
-  pop();
-
-  // margins frame
-  push();
-  noFill();
-  stroke(0,0,255);
-  strokeWeight(1);
-  rect(margins,margins, width - 2 * margins, height - 2 * margins);
-  pop();
+  helperFrames();
 
   // dragging logic
   if (dragging) {
@@ -148,44 +127,21 @@ function draw() {
 
   // write the text
   for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
-    writeLine(processedLines[lineIndex].l[i], height/3 + i * lineHeight);
+    writeLine(processedLines[lineIndex].l[i], height/2 + i * lineHeight);
   }
+
+  transitions();
 
   // Update previous mouse X position
   previousMouseX = mouseX;
 }
 
-function writeLine(l, h) {
-  push();
-  const cS = xPosition;
-  const vS = Math.min(0, verticalShift);
+function transitions() {
+  const tr = xPosition + transitionRight;
+  const tl = xPosition + transitionLeft;
 
-  const tr = cS + transitionRight;
-  const tl = cS + transitionLeft;
-
-  push();
-
-  textSize(15);
-  textAlign(LEFT);
-  stroke(255,0,0);
-
-  // helper: transition Right
-  line(tr, 0, tr, height);
-  // helper: transition Left
-  stroke(0,0,255);
-  line(tl, 0, tl, height);
-
-  stroke(0);
-  text(`tr: ${tr.toPrecision(6)}`, 10, height - 10);
-  text(`tl: ${tl.toPrecision(6)}`, 10, height - 30);
-  text(`cS: ${-cS.toPrecision(6)}`, 10, height - 50);
-  text(`lineIndex: ${lineIndex}/${processedLines.length - 2}`, 10, height - 70);
-  pop();
-
-  // console.log(`current horizontal shift: ${cS} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
-
-  const lastStep = lineIndex === processedLines.length - 2 ?  true : false;
-  // console.log(`last step: ${lastStep}`);
+  helperText(tr, tl);
+  helperTransitions(tr, tl);
 
   // moving forward, if we are beyond the right line (and also the left)
   if (tl < halfWidth && tr <= halfWidth) {
@@ -193,10 +149,11 @@ function writeLine(l, h) {
       lineIndex = lineIndex + 1;
       transitionLeft = transitionRight;
       transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
-    } else if (lastStep) {
+      // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
+    } else if (lineIndex === processedLines.length - 2) {
       lineIndex = lineIndex + 1;
+      // console.log(`lineIndex ${lineIndex}, switched to last!`);
     }
-    // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${cS} | l index: ${lineIndex}`);
   }
 
   // moving backward, if we are beyond the left line (and also the right)
@@ -204,10 +161,20 @@ function writeLine(l, h) {
     lineIndex = Math.max(lineIndex - 1, 0);
     transitionRight = transitionLeft;
     transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
-    // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${cS} | l index: ${lineIndex}`);
+    // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
+  } else if (lineIndex === processedLines.length - 1 && tr > halfWidth) {
+    lineIndex = lineIndex - 1;
+    // console.log(`lineIndex ${lineIndex}, switched back to next to last!`);
   }
 
-  translate(cS, 0);
+}
+
+function writeLine(l, h) {
+  push();
+  const vS = Math.min(0, verticalShift);
+
+  // console.log(`current horizontal shift: ${xPosition} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
+  translate(xPosition, 0);
   for (let j = 0; j < l.length; j++) {
     text(l[j], charWidth*j, h + vS);
   }
@@ -217,6 +184,9 @@ function writeLine(l, h) {
 function cleanLine(l) {
   return l.replace(/[¬\|]$/, "");
 }
+
+// ----------------------------------------
+// text processing
 
 function getCurrentLines(i, nLines) {
   let l = [];
@@ -233,17 +203,16 @@ function getCurrentLines(i, nLines) {
   return l;
 }
 
-
 function prepareLines() {
   const pLines = []; // will contain objects: {"ws": minimum leading whitespace, "l": array of lines}
   let lIndex = -1; // trick to make sure the first line is properly handled
   let cLine;
 
   // loop until we reach the end
-  while (lIndex < totalLines - 2) {
+  while (lIndex < lines.length - 2) {
 
     // move forward until we encounter ¬ or | at the end of the line
-    while (lIndex < totalLines - 2 && !lines[lIndex + 1].match(/[¬|]$/)) {
+    while (lIndex < lines.length - 2 && !lines[lIndex + 1].match(/[¬|]$/)) {
       lIndex = lIndex + 1;
     }
 
@@ -255,6 +224,7 @@ function prepareLines() {
 
       // console.log(`case ¬, line ${cLine}`);
 
+      // TODO: the + 2 doesn't make sense, most likely a margins issue
       pLines.push({
         "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 2)
@@ -297,18 +267,59 @@ function prepareLines() {
   return pLines;
 }
 
-function keyPressed() {
-  if (keyIsDown(SHIFT)) {
-    // with shift, move backward
-    if (key === " ") {
-      lineIndex = (lineIndex - 1) % (processedLines.length - 1);
-    }
-  } else {
-    // move forward
-    if (key === " ") {
-      lineIndex = (lineIndex + 1) % (processedLines.length - 1);
-    }
-  }
+// ----------------------------------------
+// helpers
+
+function helperFrames() {
+
+  // canvas frame
+  push();
+  noFill();
+  stroke(255,0,0);
+  strokeWeight(2);
+  rect(0,0, width, height, 5);
+  pop();
+
+  // margins frame
+  push();
+  noFill();
+  stroke(0,0,255);
+  strokeWeight(1);
+  rect(margins,margins, width - 2 * margins, height - 2 * margins);
+  pop();
+
+}
+
+function helperText(tr, tl) {
+
+  push();
+
+  textAlign(LEFT);
+  textSize(15);
+  stroke(0);
+
+  text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 70);
+  text(`halfWidth: ${halfWidth}`, 10, height - 50);
+  text(`tl: ${tl.toPrecision(6)}`, 10, height - 30);
+  text(`tr: ${tr.toPrecision(6)}`, 10, height - 10);
+
+  pop();
+
+}
+
+function helperTransitions(tr, tl) {
+
+  push();
+
+  // helper: transition Right
+  stroke(255,0,0);
+  line(tr, 0, tr, height);
+
+  // helper: transition Left
+  stroke(0,0,255);
+  line(tl, 0, tl, height);
+
+  pop();
 
 }
 
