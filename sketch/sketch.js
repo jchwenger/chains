@@ -1,6 +1,9 @@
 // https://p5js.org/reference/#/p5/textFont
 let fontRegular, fontItalic, fontBold;
-let lineHeight, charWidth, margins;
+let lineHeight, charWidth
+let margins;
+let leftBoundary;
+let rightBoundary;
 let lineIndex, totalLines;
 let currentTextSize;
 let currentLine;
@@ -8,8 +11,15 @@ let processedLines;
 let charZoomFactor;
 let transitionLeft, transitionRight;
 let longestLength;
+let maxTextWidth;
 let halfWidth;
 
+let xPosition;
+let velocity;
+let friction;
+let dragging;
+
+let previousMouseX;
 let initCursor;
 let currentShift;
 let horizontalShift, verticalShift;
@@ -48,7 +58,7 @@ function setup() {
 
   currentTextSize = canvasSize/10;
   fill(0)
-    .textSize(currentTextSize);
+  textSize(currentTextSize);
 
   initCursor = new Cursor(mouseX, mouseY);
   // console.log(`cursor: ${JSON.stringify(initCursor)}`);
@@ -70,33 +80,37 @@ function setup() {
   totalLines = lines.length;
   whiteSpaceToCrop = 0;
 
+  xPosition = margins;
+  velocity = 0;
+  dragging = false;
+  previousMouseX;
+  friction = 0.95;
+
+
   lineIndex = 0;
   // processedLines is an array of objects:
   // { "ws": length of minimum leading white space for each group, "l": group (array) of lines }
   processedLines = prepareLines();
   // console.log(processedLines);
 
-  transitionLeft = processedLines[0].ws * charWidth;
-  transitionRight = processedLines[lineIndex + 1].ws * charWidth;
+  transitionLeft = 0; // processedLines[0].ws * charWidth;
+  transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
 
   const lastGroup = processedLines[processedLines.length - 1].l;
-  longestLength = - (lastGroup[lastGroup.length - 1].length + 1) * charWidth + width - margins;
-  console.log(`longestLength: ${longestLength}`);
+  maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
+  // console.log(`longestLength: ${longestLength}`);
+
+  // Calculate text width and boundaries
+  leftBoundary = margins;
+  rightBoundary = width - margins - maxTextWidth;
+
 
 }
 
 function draw() {
   background(255);
 
-  // margins
-  push();
-  noFill();
-  stroke(0,0,255);
-  strokeWeight(1);
-  rect(margins,margins, width - 2 * margins, height - 2 * margins);
-  pop();
-
-  // frame
+  // canvas frame
   push();
   noFill();
   stroke(255,0,0);
@@ -104,15 +118,46 @@ function draw() {
   rect(0,0, width, height, 5);
   pop();
 
+  // margins frame
+  push();
+  noFill();
+  stroke(0,0,255);
+  strokeWeight(1);
+  rect(margins,margins, width - 2 * margins, height - 2 * margins);
+  pop();
+
+  // dragging logic
+  if (dragging) {
+    let deltaX = mouseX - previousMouseX;
+    // Update the text position directly based on mouse movement
+    xPosition += deltaX;
+    // Record the last velocity for momentum when mouse is released
+    velocity = deltaX;
+  } else {
+    // Apply friction to velocity when not dragging
+    velocity *= friction;
+    // Update text position based on velocity for momentum
+    xPosition += velocity;
+  }
+
+  // Update text position based on velocity
+  xPosition += velocity;
+
+  // Constrain text position within boundaries
+  xPosition = constrain(xPosition, rightBoundary, leftBoundary);
+
+  // write the text
   for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
     writeLine(processedLines[lineIndex].l[i], height/3 + i * lineHeight);
   }
 
+  // Update previous mouse X position
+  previousMouseX = mouseX;
 }
 
 function writeLine(l, h) {
   push();
-  const cS = constrain(currentShift + horizontalShift, longestLength, 0);
+  const cS = xPosition;
   const vS = Math.min(0, verticalShift);
 
   const tr = cS + transitionRight;
@@ -147,7 +192,7 @@ function writeLine(l, h) {
     if (lineIndex < processedLines.length - 2) {
       lineIndex = lineIndex + 1;
       transitionLeft = transitionRight;
-      transitionRight = processedLines[lineIndex + 1].ws * charWidth;
+      transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
     } else if (lastStep) {
       lineIndex = lineIndex + 1;
     }
@@ -158,13 +203,13 @@ function writeLine(l, h) {
   if (tl > halfWidth && tr > halfWidth) {
     lineIndex = Math.max(lineIndex - 1, 0);
     transitionRight = transitionLeft;
-    transitionLeft = processedLines[lineIndex].ws * charWidth;
+    transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
     // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${cS} | l index: ${lineIndex}`);
   }
 
   translate(cS, 0);
   for (let j = 0; j < l.length; j++) {
-    text(l[j], margins + charWidth*j, h + vS);
+    text(l[j], charWidth*j, h + vS);
   }
   pop();
 }
@@ -271,45 +316,19 @@ function keyPressed() {
 // scrolling mechanism
 
 function mousePressed() {
-  initCursor.x = mouseX;
-  initCursor.y = mouseY;
-  // console.log(`Mouse pressed: ${JSON.stringify(initCursor)}`);
+  dragging = true;
+  previousMouseX = mouseX;
 }
 
 function mouseReleased() {
-  currentShift += horizontalShift;
-  currentShift = constrain(currentShift + horizontalShift, longestLength, 0);;
-  horizontalShift = 0;
+  dragging = false;
 }
 
-function mouseDragged() {
+function touchStarted() {
+  dragging = true;
+  previousMouseX = mouseX;
+}
 
-  // console.log(`mX: ${mouseX}, iC: ${initCursor.x} | cur shift ${currentShift}, cur shift + hor shift: ${currentShift + horizontalShift}, longest length: ${longestLength.toPrecision(6)}`);
-
-  // if we are moving backward
-  if (mouseX > initCursor.x) {
-
-    // if are at the left limit, any move right shifts
-    if (currentShift === 0) {
-      initCursor.x = mouseX;
-    }
-
-  // if we are moving backward
-  } else {
-
-    // if we are at the right limit, stop
-    if (currentShift  === longestLength) {
-      initCursor.x = mouseX;
-      // return;
-    }
-
-    // // if are at the left limit, any move right shifts
-    // if (currentShift === longestLength) {
-    //   initCursor.x = mouseX;
-    // }
-  }
-
-  horizontalShift = - (initCursor.x - mouseX);
-
-  // console.log(`horiz shift: ${currentShift} | init: ${initCursor.x}, now: ${mouseX} -> ${horizontalShift} | vert shift: ${verticalShift}`);
+function touchEnded() {
+  dragging = false;
 }
