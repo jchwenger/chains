@@ -24,11 +24,13 @@ let friction;
 let dragging;
 
 // limits & transitions
+let maxTextWidth;
 let leftBoundary;
 let rightBoundary;
 let transitionLeft
 let transitionRight;
-let maxTextWidth;
+let alphaMix;
+let groupL;
 
 let verticalShift;
 
@@ -97,7 +99,9 @@ function setup() {
   leftBoundary = margins;
   rightBoundary = width - margins - maxTextWidth;
 
+  alphaMix = 255;
 
+  groupL = processedLines[lineIndex].l.length - 1;
 }
 
 function draw() {
@@ -127,24 +131,63 @@ function draw() {
 
   // write the text
   for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
-    writeLine(processedLines[lineIndex].l[i], height/2 + i * lineHeight);
+    writeLine(
+      processedLines[lineIndex].l[i],
+      height/2 + i * lineHeight,
+      alphaMix,
+      verticalShift
+    );
+  }
+
+  if (lineIndex < processedLines.length - 1) {
+    for (let i = 0; i < processedLines[lineIndex + 1].l.length; i++) {
+      writeLine(
+        processedLines[lineIndex + 1].l[i],
+        height/2 + i * lineHeight,
+        255 - alphaMix,
+        verticalShift * groupL
+      );
+    }
   }
 
   transitions();
 
   // Update previous mouse X position
   previousMouseX = mouseX;
+
 }
 
+function writeLine(l, h, alpha, verticalShift) {
+  push();
+
+  fill(0, alpha);
+
+  // console.log(`current horizontal shift: ${xPosition} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
+  translate(xPosition, 0);
+  for (let j = 0; j < l.length; j++) {
+    text(l[j], charWidth*j, h + verticalShift);
+  }
+  pop();
+}
+
+// ----------------------------------------
+// transitions: chaining utils
+
 function transitions() {
+
+  // xPosition will most often be a negative number as we scroll left to read
+  // more text (the beginning is far off to the left outside the canvas
   const tr = xPosition + transitionRight;
   const tl = xPosition + transitionLeft;
 
   helperText(tr, tl);
   helperTransitions(tr, tl);
 
-  // moving forward, if we are beyond the right line (and also the left)
-  if (tl < halfWidth && tr <= halfWidth) {
+  // console.log(`velocity: ${velocity}, alphaMix: ${alphaMix}`);
+
+  // moving forward, if both the right and the left line are beyond the middle,
+  // update the goal post to the next pair of lines
+  if (tr <= halfWidth && tl < halfWidth) {
     if (lineIndex < processedLines.length - 2) {
       lineIndex = lineIndex + 1;
       transitionLeft = transitionRight;
@@ -154,39 +197,44 @@ function transitions() {
       lineIndex = lineIndex + 1;
       // console.log(`lineIndex ${lineIndex}, switched to last!`);
     }
+    // alphaMix = 255;
   }
 
-  // moving backward, if we are beyond the left line (and also the right)
+  // moving backward, if both the right and the left line are beyond the middle,
+  // update the goal post to the previous pair of lines
   if (tl > halfWidth && tr > halfWidth) {
     lineIndex = Math.max(lineIndex - 1, 0);
     transitionRight = transitionLeft;
     transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
     // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
+    // alphaMix = 0;
   } else if (lineIndex === processedLines.length - 1 && tr > halfWidth) {
     lineIndex = lineIndex - 1;
     // console.log(`lineIndex ${lineIndex}, switched back to next to last!`);
   }
 
-}
+  groupL = processedLines[lineIndex].l.length - 1;
 
-function writeLine(l, h) {
-  push();
-  const vS = Math.min(0, verticalShift);
-
-  // console.log(`current horizontal shift: ${xPosition} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
-  translate(xPosition, 0);
-  for (let j = 0; j < l.length; j++) {
-    text(l[j], charWidth*j, h + vS);
+  // if we are in between, mix the visibility of the the current and next groups
+  if (tr > halfWidth && tl < halfWidth) {
+    verticalShift = map(tr, halfWidth, width - margins, 0, 30 * groupL, true);
+    alphaMix = map(tr, halfWidth, width - margins, 0, 255, true);
+    console.log(`tr <= width - margins | alphaMix: ${alphaMix.toPrecision(6)}, tr: ${tr.toPrecision(6)}, half: ${halfWidth}`);
   }
-  pop();
-}
 
-function cleanLine(l) {
-  return l.replace(/[¬\|]$/, "");
+  // if (tl > margins && tl < halfWidth) {
+  //   alphaMix = map(tl, margins, halfWidth, 0, 255);
+  //   // console.log(`tl >= margins | alphaMix: ${alphaMix}, tl: ${tl}, half: ${halfWidth}`);
+  // }
+
 }
 
 // ----------------------------------------
 // text processing
+
+function cleanLine(l) {
+  return l.replace(/[¬\|]$/, "");
+}
 
 function getCurrentLines(i, nLines) {
   let l = [];
@@ -302,6 +350,13 @@ function helperText(tr, tl) {
   text(`halfWidth: ${halfWidth}`, 10, height - 50);
   text(`tl: ${tl.toPrecision(6)}`, 10, height - 30);
   text(`tr: ${tr.toPrecision(6)}`, 10, height - 10);
+
+  text(`alphaMix: ${alphaMix.toPrecision(6)}`, 120, height - 70);
+  text(`verticalShift: ${verticalShift.toPrecision(6)}`, 120, height - 50);
+  text(`tLeft: ${transitionLeft.toPrecision(6)}`, 120, height - 30);
+  text(`tRight: ${transitionRight.toPrecision(6)}`, 120, height - 10);
+
+  text(`xPosition: ${xPosition.toPrecision(6)}`, 220, height - 10);
 
   pop();
 
