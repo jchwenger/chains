@@ -29,6 +29,7 @@ let leftBoundary;
 let rightBoundary;
 let transitionLeft
 let transitionRight;
+let transitionHalf;
 let alphaMix;
 let groupL;
 
@@ -92,6 +93,8 @@ function setup() {
   transitionLeft = 0;
   transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
 
+  transitionHalf = (transitionRight - transitionLeft) / 2;
+
   const lastGroup = processedLines[processedLines.length - 1].l;
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
 
@@ -145,7 +148,7 @@ function draw() {
         processedLines[lineIndex + 1].l[i],
         height/2 + i * lineHeight,
         255 - alphaMix,
-        verticalShift * groupL
+        verticalShift - lineHeight * groupL
       );
     }
   }
@@ -165,7 +168,7 @@ function writeLine(l, h, alpha, verticalShift) {
   // console.log(`current horizontal shift: ${xPosition} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
   translate(xPosition, 0);
   for (let j = 0; j < l.length; j++) {
-    text(l[j], charWidth*j, h + verticalShift);
+    text(l[j], charWidth*j, h - verticalShift);
   }
   pop();
 }
@@ -179,9 +182,10 @@ function transitions() {
   // more text (the beginning is far off to the left outside the canvas
   const tr = xPosition + transitionRight;
   const tl = xPosition + transitionLeft;
+  const th = xPosition + transitionHalf;
 
-  helperText(tr, tl);
-  helperTransitions(tr, tl);
+  helperText(tr, tl, th);
+  helperTransitions(tr, tl, th);
 
   // console.log(`velocity: ${velocity}, alphaMix: ${alphaMix}`);
 
@@ -192,12 +196,14 @@ function transitions() {
       lineIndex = lineIndex + 1;
       transitionLeft = transitionRight;
       transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
-      // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
+      transitionHalf = transitionLeft + (transitionRight - transitionLeft)/2;
+      verticalShift -= lineHeight * groupL;
+      // console.log(`transition forward!, tr R: ${transitionRight}, tr L: ${transitionLeft}  | current shift ${xPosition} | l index: ${lineIndex}`);
     } else if (lineIndex === processedLines.length - 2) {
       lineIndex = lineIndex + 1;
       // console.log(`lineIndex ${lineIndex}, switched to last!`);
     }
-    // alphaMix = 255;
+    alphaMix = 255;
   }
 
   // moving backward, if both the right and the left line are beyond the middle,
@@ -206,8 +212,9 @@ function transitions() {
     lineIndex = Math.max(lineIndex - 1, 0);
     transitionRight = transitionLeft;
     transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
-    // console.log(`transition!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
-    // alphaMix = 0;
+    transitionHalf = transitionLeft + (transitionRight - transitionLeft)/2;
+    // console.log(`transition backward!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
+    // alphaMix = 255;
   } else if (lineIndex === processedLines.length - 1 && tr > halfWidth) {
     lineIndex = lineIndex - 1;
     // console.log(`lineIndex ${lineIndex}, switched back to next to last!`);
@@ -216,10 +223,11 @@ function transitions() {
   groupL = processedLines[lineIndex].l.length - 1;
 
   // if we are in between, mix the visibility of the the current and next groups
-  if (tr > halfWidth && tl < halfWidth) {
-    verticalShift = map(tr, halfWidth, width - margins, 0, 30 * groupL, true);
-    alphaMix = map(tr, halfWidth, width - margins, 0, 255, true);
-    console.log(`tr <= width - margins | alphaMix: ${alphaMix.toPrecision(6)}, tr: ${tr.toPrecision(6)}, half: ${halfWidth}`);
+  if (th <= halfWidth && tr > halfWidth) {
+    const trR = halfWidth + (transitionRight - transitionLeft)/2;
+    verticalShift = map(tr, trR, halfWidth, 0, lineHeight * groupL, true);
+    alphaMix = map(tr, trR, halfWidth, 255, 0, true);
+    console.log(`half transition forward | trR: ${trR.toPrecision(6)} | alphaMix: ${alphaMix.toPrecision(6)}, verticalShift: ${verticalShift.toPrecision(3)}`);
   }
 
   // if (tl > margins && tl < halfWidth) {
@@ -338,7 +346,7 @@ function helperFrames() {
 
 }
 
-function helperText(tr, tl) {
+function helperText(tr, tl, th) {
 
   push();
 
@@ -346,25 +354,31 @@ function helperText(tr, tl) {
   textSize(15);
   stroke(0);
 
-  text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 70);
-  text(`halfWidth: ${halfWidth}`, 10, height - 50);
-  text(`tl: ${tl.toPrecision(6)}`, 10, height - 30);
-  text(`tr: ${tr.toPrecision(6)}`, 10, height - 10);
+  text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 30);
+  text(`xPosition: ${xPosition.toPrecision(6)}`, 10, height - 10);
 
-  text(`alphaMix: ${alphaMix.toPrecision(6)}`, 120, height - 70);
-  text(`verticalShift: ${verticalShift.toPrecision(6)}`, 120, height - 50);
-  text(`tLeft: ${transitionLeft.toPrecision(6)}`, 120, height - 30);
-  text(`tRight: ${transitionRight.toPrecision(6)}`, 120, height - 10);
+  text(`alphaMix: ${alphaMix.toPrecision(6)}`, 130, height - 30);
+  text(`verticalShift: ${verticalShift.toPrecision(4)}`, 130, height - 10);
 
-  text(`xPosition: ${xPosition.toPrecision(6)}`, 220, height - 10);
+  text(`tLeft: ${transitionLeft.toPrecision(6)}`, width - 190, height - 50);
+  text(`tRight: ${transitionRight.toPrecision(6)}`, width - 190, height - 30);
+  text(`tHalf: ${transitionHalf.toPrecision(6)}`, width - 190, height - 10);
+
+  text(`tl: ${tl.toPrecision(6)}`, width - 80, height - 50);
+  text(`tr: ${tr.toPrecision(6)}`, width - 80, height - 30);
+  text(`th: ${th.toPrecision(6)}`, width - 80, height - 10);
 
   pop();
 
 }
 
-function helperTransitions(tr, tl) {
+function helperTransitions(tr, tl, th) {
 
   push();
+
+  // helper: middle
+  stroke(0);
+  line(halfWidth, 0, halfWidth, height);
 
   // helper: transition Right
   stroke(255,0,0);
@@ -373,6 +387,10 @@ function helperTransitions(tr, tl) {
   // helper: transition Left
   stroke(0,0,255);
   line(tl, 0, tl, height);
+
+  // helper: transition boundary
+  stroke(0,255,0);
+  line(th, 0, th, height);
 
   pop();
 
@@ -397,4 +415,14 @@ function touchStarted() {
 
 function touchEnded() {
   dragging = false;
+}
+
+function keyPressed() {
+
+  if (keyCode === LEFT_ARROW) {
+    xPosition -= 1;
+  } else if  (keyCode === RIGHT_ARROW) {
+    xPosition += 1;
+  }
+
 }
