@@ -1,5 +1,7 @@
 let margins;
 let halfWidth;
+let thirdLWidth;
+let thirdRWidth;
 
 // text business
 // https://p5js.org/reference/#/p5/textFont
@@ -30,10 +32,13 @@ let rightBoundary;
 let transitionLeft
 let transitionRight;
 let transitionHalf;
-let alphaMix;
+let alphaMixL;
+let alphaMixR;
 let groupL;
 
 let verticalShift;
+
+// let ik;
 
 function preload() {
   fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
@@ -42,6 +47,11 @@ function preload() {
   fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
   // lines = loadStrings('assets/bras-de-fer-de-lance.chain.txt');
   lines = loadStrings('assets/anothering.chain.txt');
+
+  // httpGet(
+  //   'https://raw.githubusercontent.com/jchwenger/wordhoard/master/IKEA/ikea.txt',
+  //   'text', true, (r) => ik = r
+  // )
 }
 
 function setup() {
@@ -68,11 +78,13 @@ function setup() {
   const widestChar = Array.from(new Set(lines.join("").split("")))
     .reduce((char1, char2) => textWidth(char1) > textWidth(char2) ? char1 : char2);
 
-  charZoomFactor = 1;
+  charZoomFactor = .8;
   charWidth = textWidth(widestChar) * charZoomFactor;
 
   margins = charWidth * 2;
   halfWidth = width/2;
+  thirdLWidth = width/3;
+  thirdRWidth = 2 * width/3;
 
   lineHeight = canvasSize/15;
   whiteSpaceToCrop = 0;
@@ -102,7 +114,8 @@ function setup() {
   leftBoundary = margins;
   rightBoundary = width - margins - maxTextWidth;
 
-  alphaMix = 255;
+  alphaMixL = 255;
+  alphaMixR = 255;
 
   groupL = processedLines[lineIndex].l.length - 1;
 }
@@ -110,7 +123,7 @@ function setup() {
 function draw() {
   background(255);
 
-  helperFrames();
+  // helperFrames();
 
   // dragging logic
   if (dragging) {
@@ -132,23 +145,35 @@ function draw() {
   // Constrain text position within boundaries
   xPosition = constrain(xPosition, rightBoundary, leftBoundary);
 
+  // previous link
+  if (lineIndex > 0) {
+    for (let i = 0; i < processedLines[lineIndex - 1].l.length; i++) {
+      writeLine(
+        processedLines[lineIndex - 1].l[i],
+        height/2 + i * lineHeight,
+        alphaMixL,
+        verticalShift + lineHeight * (processedLines[lineIndex - 1].l.length - 1)
+      );
+    }
+  }
 
   // write the text
   for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
     writeLine(
       processedLines[lineIndex].l[i],
       height/2 + i * lineHeight,
-      alphaMix,
+      255,
       verticalShift
     );
   }
 
+  // next link
   if (lineIndex < processedLines.length - 1) {
     for (let i = 0; i < processedLines[lineIndex + 1].l.length; i++) {
       writeLine(
         processedLines[lineIndex + 1].l[i],
         height/2 + i * lineHeight,
-        255 - alphaMix,
+        alphaMixR,
         verticalShift - lineHeight * groupL
       );
     }
@@ -184,17 +209,18 @@ function transitions() {
   const tr = xPosition + transitionRight;
   const tl = xPosition + transitionLeft;
   const th = xPosition + transitionHalf;
-  const trR = halfWidth + (transitionRight - transitionLeft)/2;
+  const trR = halfWidth + (transitionRight - transitionLeft)/4;
+  const trL = halfWidth - (transitionRight - transitionLeft)/4;
 
   helperText(tr, tl, th);
-  helperTransitions(tr, tl, th, trR);
+  helperTransitions(tr, tl, th, trR, trL);
 
-  // console.log(`velocity: ${velocity}, alphaMix: ${alphaMix.toPrecision(4)}`);
+  // console.log(`velocity: ${velocity}, alphaMixL: ${alphaMixL.toPrecision(4)}`);
   // console.log(`verticalShift ${verticalShift.toPrecision(6)}`);
 
   // moving forward, if both the right and the left line are beyond the middle,
   // update the goal post to the next pair of lines
-  if (tr <= halfWidth && tl < halfWidth) {
+  if (tr < halfWidth && tl < halfWidth) {
     if (lineIndex < processedLines.length - 2) {
       lineIndex = lineIndex + 1;
       transitionLeft = transitionRight;
@@ -207,8 +233,8 @@ function transitions() {
       lineIndex = lineIndex + 1;
       // console.log(`lineIndex ${lineIndex}, switched to last!`);
     }
-    alphaMix = 255;
-    // console.log(`transition forward | alphaMix: ${alphaMix.toPrecision(6)}, verticalShift: ${verticalShift.toPrecision(3)}`);
+    alphaMixL = 255;
+    // console.log(`transition forward | alphaMixL: ${alphaMixL.toPrecision(6)}, verticalShift: ${verticalShift.toPrecision(3)}`);
   }
 
   groupL = processedLines[lineIndex].l.length - 1;
@@ -221,7 +247,7 @@ function transitions() {
     transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
     transitionHalf = transitionLeft + (transitionRight - transitionLeft)/2;
     verticalShift += lineHeight * groupL;
-    alphaMix = 0;
+    alphaMixL = 0;
     // console.log(`transition backward!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
   } else if (lineIndex === processedLines.length - 1 && tr > halfWidth) {
     lineIndex = lineIndex - 1;
@@ -229,16 +255,21 @@ function transitions() {
   }
 
   // if we are in between, mix the visibility of the the current and next groups
-  if (th < halfWidth && tr > halfWidth) {
+  if (th < trL && tr > halfWidth) {
     verticalShift = map(tr, trR, halfWidth, 0, lineHeight * groupL, true);
-    alphaMix = map(tr, trR, halfWidth, 255, 0);
-    // console.log(`half transition forward | tr: ${tr.toPrecision(6)} | trR: ${trR.toPrecision(6)} | alphaMix: ${alphaMix.toPrecision(6)}, verticalShift: ${verticalShift.toPrecision(3)}`);
+    // alphaMixL = map(tr, trR, halfWidth, 255, 0, true);
+    // console.log(`half transition forward | tr: ${tr.toPrecision(6)}, trR: ${trR.toPrecision(6)}, trL: ${trL.toPrecision(6)} | alphaMixL: ${alphaMixL.toPrecision(3)}, verticalShift: ${verticalShift.toPrecision(3)}`);
   }
 
-  // if (tl > margins && tl < halfWidth) {
-  //   alphaMix = map(tl, margins, halfWidth, 0, 255);
-  //   // console.log(`tl >= margins | alphaMix: ${alphaMix}, tl: ${tl}, half: ${halfWidth}`);
-  // }
+  if (tl < halfWidth && th > trR) {
+    alphaMixL = map(tl, halfWidth, trL, 255, 0, true);
+    // console.log(`left`);
+  }
+
+  if (th > trL && tr > trR) {
+    alphaMixR = map(th, trR, trL, 0, 255, true);
+    // console.log(`right`);
+  }
 
 }
 
@@ -359,10 +390,12 @@ function helperText(tr, tl, th) {
   textSize(15);
   stroke(0);
 
+  text(`velocity: ${velocity.toPrecision(6)}`, 10, height - 50);
   text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 30);
   text(`xPosition: ${xPosition.toPrecision(6)}`, 10, height - 10);
 
-  text(`alphaMix: ${alphaMix.toPrecision(6)}`, 130, height - 30);
+  text(`alphaMixL: ${alphaMixL.toPrecision(6)}`, 130, height - 50);
+  text(`alphaMixR: ${alphaMixR.toPrecision(6)}`, 130, height - 30);
   text(`verticalShift: ${verticalShift.toPrecision(4)}`, 130, height - 10);
 
   text(`tLeft: ${transitionLeft.toPrecision(6)}`, width - 190, height - 50);
@@ -377,29 +410,51 @@ function helperText(tr, tl, th) {
 
 }
 
-function helperTransitions(tr, tl, th, trR) {
+function helperTransitions(tr, tl, th, trR, trL) {
 
   push();
+  textAlign(LEFT);
+  textSize(15);
+  let c;
 
-  // helper: middle
+  // halfWidth: middle, horizontal/vertical
   stroke(0);
   line(halfWidth, 0, halfWidth, height);
+  line(0, halfWidth, height, halfWidth);
 
-  // helper: transition Right
-  stroke(255,0,0);
+  // tr: transition Right
+  c = color(255,0,0);
+  stroke(c);
   line(tr, 0, tr, height);
+  noStroke();
+  fill(c);
+  text('tr', tr + 2, 10);
 
-  // helper: transition Left
-  stroke(0,0,255);
+  // tl: transition Left
+  c = color(0,0,255);
+  stroke(c);
   line(tl, 0, tl, height);
+  noStroke();
+  fill(c);
+  text('tl', tl + 2, 10);
 
-  // helper: transition boundary
-  stroke(0,255,0);
+  // th: transition boundary (midpoint transitions left/right, neon green)
+  c = color(0,255,0);
+  stroke(c);
   line(th, 0, th, height);
+  noStroke();
+  fill(c);
+  text('th', th + 2, 10);
 
-  // helper: trR
-  stroke(168, 50, 162);
+  // trR & trL: mid-transition on each side of halfWidth (purple)
+  c = color(168, 50, 162);
+  stroke(c);
   line(trR, 0, trR, height);
+  line(trL, 0, trL, height);
+  noStroke();
+  fill(c);
+  text('trL', trL + 2, 10);
+  text('trR', trR + 2, 10);
 
   pop();
 
