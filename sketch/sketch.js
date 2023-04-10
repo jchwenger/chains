@@ -51,8 +51,8 @@ function preload() {
 }
 
 function setup() {
-  canvasSize = 500;
-  createCanvas(canvasSize, canvasSize);
+  canvasSize = 700;
+  createCanvas(canvasSize, canvasSize * .8);
 
   // remove last empty line if there is one
   lines = lines.filter(l => l.length > 0);
@@ -64,7 +64,7 @@ function setup() {
   textFont(fontRegular);
   textAlign(CENTER);
 
-  currentTextSize = canvasSize/10;
+  currentTextSize = canvasSize/15;
   fill(0)
   textSize(currentTextSize);
 
@@ -82,18 +82,22 @@ function setup() {
   thirdLWidth = width/3;
   thirdRWidth = 2 * width/3;
 
-  lineHeight = canvasSize/15;
+  lineHeight = canvasSize/25;
   whiteSpaceToCrop = 0;
 
   xPosition = margins;
   velocity = 0;
   dragging = false;
   previousMouseX;
-  friction = 0.95;
+  friction = 0.85;
 
   lineIndex = 0;
   // processedLines is an array of objects:
-  // { "ws": length of minimum leading white space for each group, "l": group (array) of lines }
+  // {
+  //   "ws": length of minimum leading white space for each group, "l": group (array) of lines,
+  //   "n": n° lines in current group, "np": in previous gropu, "nn": in next group,
+  //   "tl": transition left, "tr": transition right, "th": transition half/middle
+  // }
   processedLines = prepareLines();
   console.log(processedLines);
 
@@ -112,20 +116,22 @@ function setup() {
 function draw() {
   background(255);
 
-  helperFrames();
-
   // dragging logic
   if (dragging) {
+
     let deltaX = mouseX - previousMouseX;
     // Update the text position directly based on mouse movement
     xPosition += deltaX;
     // Record the last velocity for momentum when mouse is released
     velocity = deltaX;
+
   } else {
+
     // Apply friction to velocity when not dragging
     velocity *= friction;
     // Update text position based on velocity for momentum
     xPosition += velocity;
+
   }
 
   // Update text position based on velocity
@@ -134,6 +140,9 @@ function draw() {
   // Constrain text position within boundaries
   xPosition = constrain(xPosition, rightBoundary, leftBoundary);
 
+  // update our transitions
+  transitions();
+
   // previous link
   if (lineIndex > 0) {
     for (let i = 0; i < processedLines[lineIndex - 1].l.length; i++) {
@@ -141,7 +150,7 @@ function draw() {
         processedLines[lineIndex - 1].l[i],
         height/2 + i * lineHeight,
         alphaMixL,
-        verticalShift + lineHeight * (processedLines[lineIndex - 1].l.length - 1)
+        verticalShift + processedLines[lineIndex].vp // lineHeight * (processedLines[lineIndex - 1].l.length - 1)
       );
     }
   }
@@ -163,12 +172,10 @@ function draw() {
         processedLines[lineIndex + 1].l[i],
         height/2 + i * lineHeight,
         alphaMixR,
-        verticalShift - lineHeight * processedLines[lineIndex].n
+        verticalShift - processedLines[lineIndex].vn // lineHeight * processedLines[lineIndex].n
       );
     }
   }
-
-  transitions();
 
   // Update previous mouse X position
   previousMouseX = mouseX;
@@ -195,82 +202,86 @@ function transitions() {
 
   // xPosition will most often be a negative number as we scroll left to read
   // more text (the beginning is far off to the left outside the canvas
-  const tr = xPosition + processedLines[lineIndex].tr;
   const tl = xPosition + processedLines[lineIndex].tl;
+  const tr = xPosition + processedLines[lineIndex].tr;
   const th = xPosition + processedLines[lineIndex].th;
-  const trR = Math.min(
-    halfWidth + (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/2,
-    width - margins // we don't go beyond the margins
-  );
-  const trL = Math.max(
-    halfWidth - (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/2,
-    margins // we don't go beyond the margins
-  );
+  const tdiff = (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/4;
+  const trL = Math.max(halfWidth - tdiff, margins); // we don't go beyond the margins
+  const trR = Math.min(halfWidth + tdiff, width - margins);
 
-
-  helperText(tr, tl, th, trR, trL);
-  helperTransitions(tr, tl, th, trR, trL);
+  // helperFrames();
+  // helperText(tr, tl, th, trR, trL);
+  // helperTransitions(tr, tl, th, trR, trL);
 
   // CASE: first
   if (lineIndex === 0) {
 
-    // TRANSITION
-    if (tr < halfWidth) {
-      lineIndex += 1;
-      verticalShift -= lineHeight * processedLines[lineIndex].np;
-      alphaMixR = 0;
-      // console.log(`transition forward (1st) | verticalShift: ${verticalShift.toPrecision(3)}`);
-    }
-
     // right fade: next link appears, moves up
-    if (tr >= halfWidth && tr <= trR && xPosition < margins) {
-      verticalShift = map(tr, trR, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
-      alphaMixR = map(tr, trR, halfWidth, 0, 255, true);
+    // using th for practical reasons (guaranteeing a full fade out in any scenario using trL)
+    const startCutOff = Math.min(trR, margins + processedLines[lineIndex].tr);
+    if (tr <= startCutOff) {
+      verticalShift = map(tr, startCutOff, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
+      alphaMixR = map(tr, startCutOff, halfWidth, 0, 255, true);
+      // console.log(`right fade (1st) | startCutOff: ${startCutOff}`);
       // console.log(`right fade (1st) | verticalShift: ${verticalShift.toPrecision(6)}`);
       // console.log(`right fade (1st) | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+    }
+
+    if (xPosition === margins) alphaMixR = 0;
+
+    // TRANSITION FORWARD
+    if (tr <= halfWidth) {
+      verticalShift = 0;
+      lineIndex += 1;
+      alphaMixR = 0;
+      alphaMixL = 255;
+      // console.log(`transition forward (1st) | verticalShift: ${verticalShift.toPrecision(3)}`);
     }
 
   // CASE: last
   } else if (lineIndex === processedLines.length - 1) {
 
     // TRANSITION BACKWARD
-    if (tl > halfWidth) {
-      verticalShift += lineHeight * processedLines[lineIndex].np;
+    if (tl >= halfWidth) {
+      verticalShift = processedLines[lineIndex].vp;
       lineIndex -= 1;
-      // alphaMixL = 0;
-      // console.log(`transition backward | verticalShift: ${verticalShift}`);
+      alphaMixL = 255;
+      alphaMixR = 255;
+      // console.log(`transition backward (last) | verticalShift: ${verticalShift}`);
     }
 
     // left fade: previous link disappears
     if (tl <= halfWidth && tl >= trL) {
       alphaMixL = map(tl, trL + 5, halfWidth - 5, 0, 255, true);
-      // console.log(`tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
-      // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
+      // console.log(`left fade (last) | tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+      // console.log(`left fade (last) | alphaMixL: ${alphaMixL.toPrecision(6)}`);
     }
 
   // CASE: all others
   } else {
 
     // TRANSITION FORWARD
-    if (tr < halfWidth) {
-      verticalShift -= lineHeight * processedLines[lineIndex].n;
+    if (tr <= halfWidth) {
+      verticalShift = 0;
       lineIndex += 1;
       alphaMixR = 0;
+      alphaMixL = 255;
       // console.log(`transition forward | verticalShift: ${verticalShift}`);
     }
 
     // TRANSITION BACKWARD
-    if (tl > halfWidth) {
-      verticalShift += lineHeight * processedLines[lineIndex].np;
+    if (tl >= halfWidth) {
+      verticalShift = processedLines[lineIndex].vp;
       lineIndex -= 1;
       alphaMixL = 0;
+      alphaMixR = 255;
       // console.log(`transition backward | verticalShift: ${verticalShift}`);
     }
 
     // left fade: previous link disappears
     if (tl <= halfWidth && tl >= trL) {
-      alphaMixL = map(tl, trL + 5, halfWidth - 5, 0, 255, true);
-      // console.log(`tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+      alphaMixL = map(tl, trL, halfWidth, 0, 255, true);
+      // console.log(`left fade | tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
       // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
     }
 
@@ -279,6 +290,12 @@ function transitions() {
       verticalShift = map(tr, trR, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
       alphaMixR = map(tr, trR, halfWidth, 0, 255, true);
       // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
+    }
+
+    // correcting for right fade imprecision above
+    if (tl <= trL && tr >= trR) {
+      verticalShift = 0;
+      // console.log(`vertical check | verticalShift: ${verticalShift}`);
     }
 
   }
@@ -360,6 +377,7 @@ function prepareLines() {
 
   // calculate: - transitions (tl: left, tr: right, th: half/middle)
   //            - n° of lines - 1 for each group (n: current, np: previous, nn: next)
+  //            - vertical shift (vp: previous, vn: next)
   for (let i = 0; i < pLines.length; i++) {
     // CASE: first
     if (i === 0) {
@@ -368,6 +386,8 @@ function prepareLines() {
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i].l.length - 1;
       pLines[i].nn = pLines[i + 1].l.length - 1;
+      pLines[i].vp = 0;
+      pLines[i].vn = lineHeight * (pLines[i].l.length - 1); // desired shift: current n° lines - 1
     // CASE: last
     } else if (i === pLines.length - 1) {
       pLines[i].tl = pLines[i - 1].tr;
@@ -375,6 +395,8 @@ function prepareLines() {
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].nn = pLines[i].l.length - 1;
+      pLines[i].vp = pLines[i - 1].vn;
+      pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
     // CASE: all others
     } else {
       pLines[i].tl = pLines[i - 1].tr;
@@ -382,6 +404,8 @@ function prepareLines() {
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].nn = pLines[i + 1].l.length - 1;
+      pLines[i].vp = pLines[i - 1].vn;
+      pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
     }
     pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2;
   }
@@ -459,8 +483,8 @@ function helperTransitions(tr, tl, th, trR, trL) {
 
   // halfWidth: middle, horizontal/vertical
   stroke(0);
-  line(halfWidth, 0, halfWidth, height);
-  line(0, halfWidth, height, halfWidth);
+  line(halfWidth, 0, halfWidth, height); // vertical
+  line(0, height/2, width, height/2); // horizontal
 
   // tr: transition Right
   c = color(255,0,0);
