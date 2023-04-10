@@ -29,12 +29,8 @@ let dragging;
 let maxTextWidth;
 let leftBoundary;
 let rightBoundary;
-let transitionLeft
-let transitionRight;
-let transitionHalf;
 let alphaMixL;
 let alphaMixR;
-let groupL;
 
 let verticalShift;
 
@@ -99,13 +95,7 @@ function setup() {
   // processedLines is an array of objects:
   // { "ws": length of minimum leading white space for each group, "l": group (array) of lines }
   processedLines = prepareLines();
-  // console.log(processedLines);
-
-  // TODO: is there a more elegant logic handling margins here?
-  transitionLeft = 0;
-  transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
-
-  transitionHalf = (transitionRight - transitionLeft) / 2;
+  console.log(processedLines);
 
   const lastGroup = processedLines[processedLines.length - 1].l;
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
@@ -115,15 +105,14 @@ function setup() {
   rightBoundary = width - margins - maxTextWidth;
 
   alphaMixL = 255;
-  alphaMixR = 255;
+  alphaMixR = 0;
 
-  groupL = processedLines[lineIndex].l.length - 1;
 }
 
 function draw() {
   background(255);
 
-  // helperFrames();
+  helperFrames();
 
   // dragging logic
   if (dragging) {
@@ -174,7 +163,7 @@ function draw() {
         processedLines[lineIndex + 1].l[i],
         height/2 + i * lineHeight,
         alphaMixR,
-        verticalShift - lineHeight * groupL
+        verticalShift - lineHeight * processedLines[lineIndex].n
       );
     }
   }
@@ -206,69 +195,92 @@ function transitions() {
 
   // xPosition will most often be a negative number as we scroll left to read
   // more text (the beginning is far off to the left outside the canvas
-  const tr = xPosition + transitionRight;
-  const tl = xPosition + transitionLeft;
-  const th = xPosition + transitionHalf;
-  const trR = halfWidth + (transitionRight - transitionLeft)/4;
-  const trL = halfWidth - (transitionRight - transitionLeft)/4;
+  const tr = xPosition + processedLines[lineIndex].tr;
+  const tl = xPosition + processedLines[lineIndex].tl;
+  const th = xPosition + processedLines[lineIndex].th;
+  const trR = Math.min(
+    halfWidth + (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/2,
+    width - margins // we don't go beyond the margins
+  );
+  const trL = Math.max(
+    halfWidth - (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/2,
+    margins // we don't go beyond the margins
+  );
 
-  helperText(tr, tl, th);
+
+  helperText(tr, tl, th, trR, trL);
   helperTransitions(tr, tl, th, trR, trL);
 
-  // console.log(`velocity: ${velocity}, alphaMixL: ${alphaMixL.toPrecision(4)}`);
-  // console.log(`verticalShift ${verticalShift.toPrecision(6)}`);
+  // CASE: first
+  if (lineIndex === 0) {
 
-  // moving forward, if both the right and the left line are beyond the middle,
-  // update the goal post to the next pair of lines
-  if (tr < halfWidth && tl < halfWidth) {
-    if (lineIndex < processedLines.length - 2) {
-      lineIndex = lineIndex + 1;
-      transitionLeft = transitionRight;
-      transitionRight = processedLines[lineIndex + 1].ws * charWidth - margins;
-      transitionHalf = transitionLeft + (transitionRight - transitionLeft)/2;
-      verticalShift -= lineHeight * groupL;
-      // console.log(`transition forward!, tr R: ${transitionRight}, tr L: ${transitionLeft}  | current shift ${xPosition} | l index: ${lineIndex}`);
-    } else if (lineIndex === processedLines.length - 2) {
-      verticalShift -= lineHeight * groupL;
-      lineIndex = lineIndex + 1;
-      // console.log(`lineIndex ${lineIndex}, switched to last!`);
+    // TRANSITION
+    if (tr < halfWidth) {
+      lineIndex += 1;
+      verticalShift -= lineHeight * processedLines[lineIndex].np;
+      alphaMixR = 0;
+      // console.log(`transition forward (1st) | verticalShift: ${verticalShift.toPrecision(3)}`);
     }
-    alphaMixL = 255;
-    // console.log(`transition forward | alphaMixL: ${alphaMixL.toPrecision(6)}, verticalShift: ${verticalShift.toPrecision(3)}`);
-  }
 
-  groupL = processedLines[lineIndex].l.length - 1;
+    // right fade: next link appears, moves up
+    if (tr >= halfWidth && tr <= trR && xPosition < margins) {
+      verticalShift = map(tr, trR, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
+      alphaMixR = map(tr, trR, halfWidth, 0, 255, true);
+      // console.log(`right fade (1st) | verticalShift: ${verticalShift.toPrecision(6)}`);
+      // console.log(`right fade (1st) | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+    }
 
-  // moving backward, if both the right and the left line are beyond the middle,
-  // update the goal post to the previous pair of lines
-  if (tl > halfWidth && tr > halfWidth) {
-    lineIndex = Math.max(lineIndex - 1, 0);
-    transitionRight = transitionLeft;
-    transitionLeft = processedLines[lineIndex].ws * charWidth - margins;
-    transitionHalf = transitionLeft + (transitionRight - transitionLeft)/2;
-    verticalShift += lineHeight * groupL;
-    alphaMixL = 0;
-    // console.log(`transition backward!, tr R: ${transitionRight}, tr L ${transitionLeft} | current shift ${xPosition} | l index: ${lineIndex}`);
-  } else if (lineIndex === processedLines.length - 1 && tr > halfWidth) {
-    lineIndex = lineIndex - 1;
-    // console.log(`lineIndex ${lineIndex}, switched back to next to last!`);
-  }
+  // CASE: last
+  } else if (lineIndex === processedLines.length - 1) {
 
-  // if we are in between, mix the visibility of the the current and next groups
-  if (th < trL && tr > halfWidth) {
-    verticalShift = map(tr, trR, halfWidth, 0, lineHeight * groupL, true);
-    // alphaMixL = map(tr, trR, halfWidth, 255, 0, true);
-    // console.log(`half transition forward | tr: ${tr.toPrecision(6)}, trR: ${trR.toPrecision(6)}, trL: ${trL.toPrecision(6)} | alphaMixL: ${alphaMixL.toPrecision(3)}, verticalShift: ${verticalShift.toPrecision(3)}`);
-  }
+    // TRANSITION BACKWARD
+    if (tl > halfWidth) {
+      verticalShift += lineHeight * processedLines[lineIndex].np;
+      lineIndex -= 1;
+      // alphaMixL = 0;
+      // console.log(`transition backward | verticalShift: ${verticalShift}`);
+    }
 
-  if (tl < halfWidth && th > trR) {
-    alphaMixL = map(tl, halfWidth, trL, 255, 0, true);
-    // console.log(`left`);
-  }
+    // left fade: previous link disappears
+    if (tl <= halfWidth && tl >= trL) {
+      alphaMixL = map(tl, trL + 5, halfWidth - 5, 0, 255, true);
+      // console.log(`tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+      // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
+    }
 
-  if (th > trL && tr > trR) {
-    alphaMixR = map(th, trR, trL, 0, 255, true);
-    // console.log(`right`);
+  // CASE: all others
+  } else {
+
+    // TRANSITION FORWARD
+    if (tr < halfWidth) {
+      verticalShift -= lineHeight * processedLines[lineIndex].n;
+      lineIndex += 1;
+      alphaMixR = 0;
+      // console.log(`transition forward | verticalShift: ${verticalShift}`);
+    }
+
+    // TRANSITION BACKWARD
+    if (tl > halfWidth) {
+      verticalShift += lineHeight * processedLines[lineIndex].np;
+      lineIndex -= 1;
+      alphaMixL = 0;
+      // console.log(`transition backward | verticalShift: ${verticalShift}`);
+    }
+
+    // left fade: previous link disappears
+    if (tl <= halfWidth && tl >= trL) {
+      alphaMixL = map(tl, trL + 5, halfWidth - 5, 0, 255, true);
+      // console.log(`tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
+      // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
+    }
+
+    // right fade: next link appears, moves up
+    if (tr >= halfWidth && tr <= trR) {
+      verticalShift = map(tr, trR, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
+      alphaMixR = map(tr, trR, halfWidth, 0, 255, true);
+      // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
+    }
+
   }
 
 }
@@ -346,6 +358,34 @@ function prepareLines() {
 
   }
 
+  // calculate: - transitions (tl: left, tr: right, th: half/middle)
+  //            - n° of lines - 1 for each group (n: current, np: previous, nn: next)
+  for (let i = 0; i < pLines.length; i++) {
+    // CASE: first
+    if (i === 0) {
+      pLines[i].tl = 0;
+      pLines[i].tr = pLines[i + 1].ws * charWidth - margins;
+      pLines[i].n = pLines[i].l.length - 1;
+      pLines[i].np = pLines[i].l.length - 1;
+      pLines[i].nn = pLines[i + 1].l.length - 1;
+    // CASE: last
+    } else if (i === pLines.length - 1) {
+      pLines[i].tl = pLines[i - 1].tr;
+      pLines[i].tr = (pLines[i].l[pLines[i].l.length - 1 - 1].length - 1) * charWidth;
+      pLines[i].n = pLines[i].l.length - 1;
+      pLines[i].np = pLines[i - 1].l.length - 1;
+      pLines[i].nn = pLines[i].l.length - 1;
+    // CASE: all others
+    } else {
+      pLines[i].tl = pLines[i - 1].tr;
+      pLines[i].tr = pLines[i + 1].ws * charWidth - margins;
+      pLines[i].n = pLines[i].l.length - 1;
+      pLines[i].np = pLines[i - 1].l.length - 1;
+      pLines[i].nn = pLines[i + 1].l.length - 1;
+    }
+    pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2;
+  }
+
   // console.log("========================================");
   // console.log("pLines:");
   // for (const g of pLines) {
@@ -382,7 +422,7 @@ function helperFrames() {
 
 }
 
-function helperText(tr, tl, th) {
+function helperText(tr, tl, th, trR, trL) {
 
   push();
 
@@ -390,7 +430,7 @@ function helperText(tr, tl, th) {
   textSize(15);
   stroke(0);
 
-  text(`velocity: ${velocity.toPrecision(6)}`, 10, height - 50);
+  text(`velocity: ${velocity.toPrecision(4)}`, 10, height - 50);
   text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 30);
   text(`xPosition: ${xPosition.toPrecision(6)}`, 10, height - 10);
 
@@ -398,9 +438,9 @@ function helperText(tr, tl, th) {
   text(`alphaMixR: ${alphaMixR.toPrecision(6)}`, 130, height - 30);
   text(`verticalShift: ${verticalShift.toPrecision(4)}`, 130, height - 10);
 
-  text(`tLeft: ${transitionLeft.toPrecision(6)}`, width - 190, height - 50);
-  text(`tRight: ${transitionRight.toPrecision(6)}`, width - 190, height - 30);
-  text(`tHalf: ${transitionHalf.toPrecision(6)}`, width - 190, height - 10);
+  text(`tLeft: ${trL.toPrecision(6)}`, width - 190, height - 50);
+  text(`tRight: ${trR.toPrecision(6)}`, width - 190, height - 30);
+  text(`tHalf: ${halfWidth}`, width - 190, height - 10);
 
   text(`tl: ${tl.toPrecision(6)}`, width - 80, height - 50);
   text(`tr: ${tr.toPrecision(6)}`, width - 80, height - 30);
