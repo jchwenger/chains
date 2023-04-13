@@ -1,7 +1,5 @@
-let margins;
+let margin;
 let halfWidth;
-let thirdLWidth;
-let thirdRWidth;
 
 // text business
 // https://p5js.org/reference/#/p5/textFont
@@ -42,7 +40,8 @@ function preload() {
   fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
   fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
   // lines = loadStrings('assets/bras-de-fer-de-lance.chain.txt');
-  lines = loadStrings('assets/anothering.chain.txt');
+  // lines = loadStrings('assets/anothering.chain.txt');
+  lines = loadStrings('assets/riverrun.chain.txt');
 
   // httpGet(
   //   'https://raw.githubusercontent.com/jchwenger/wordhoard/master/IKEA/ikea.txt',
@@ -77,25 +76,18 @@ function setup() {
   charZoomFactor = .8;
   charWidth = textWidth(widestChar) * charZoomFactor;
 
-  margins = charWidth * 2;
+  margin = charWidth * 2;
   halfWidth = width/2;
-  thirdLWidth = width/3;
-  thirdRWidth = 2 * width/3;
 
   lineHeight = canvasSize/25;
   whiteSpaceToCrop = 0;
-
-  xPosition = margins;
-  velocity = 0;
-  dragging = false;
-  previousMouseX;
-  friction = 0.85;
 
   lineIndex = 0;
   // processedLines is an array of objects:
   // {
   //   "ws": length of minimum leading white space for each group, "l": group (array) of lines,
-  //   "n": n° lines in current group, "np": in previous gropu, "nn": in next group,
+  //   "n": n° lines in current group, "np": in previous group, "nn": in next group,
+  //   "vp": previous vertical shift, "vn": next,
   //   "tl": transition left, "tr": transition right, "th": transition half/middle
   // }
   processedLines = prepareLines();
@@ -105,8 +97,14 @@ function setup() {
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
 
   // Calculate text width and boundaries
-  leftBoundary = margins;
-  rightBoundary = width - margins - maxTextWidth;
+  leftBoundary = margin;
+  rightBoundary = width - margin - maxTextWidth;
+
+  xPosition = leftBoundary;
+  velocity = 0;
+  dragging = false;
+  previousMouseX;
+  friction = 0.85;
 
   alphaMixL = 255;
   alphaMixR = 0;
@@ -129,6 +127,7 @@ function draw() {
 
     // Apply friction to velocity when not dragging
     velocity *= friction;
+    if (Math.abs(velocity) < 0.001) velocity = 0;
     // Update text position based on velocity for momentum
     xPosition += velocity;
 
@@ -200,104 +199,71 @@ function writeLine(l, h, alpha, verticalShift) {
 
 function transitions() {
 
-  // xPosition will most often be a negative number as we scroll left to read
-  // more text (the beginning is far off to the left outside the canvas
-  const tl = xPosition + processedLines[lineIndex].tl;
+  // xPosition starts at margin, then will most often be a negative number as
+  // we scroll left to read more text (the end is far off to the left
+  // outside the canvas)
+  const tl = xPosition + processedLines[lineIndex].tl; // transition left/right/half
   const tr = xPosition + processedLines[lineIndex].tr;
   const th = xPosition + processedLines[lineIndex].th;
+  const trH = halfWidth; // Math.min(halfWidth, margin + processedLines[lineIndex].th);
   const tdiff = (processedLines[lineIndex].tr - processedLines[lineIndex].tl)/4;
-  const trL = Math.max(halfWidth - tdiff, margins); // we don't go beyond the margins
-  const trR = Math.min(halfWidth + tdiff, width - margins);
+  const trL = Math.max(trH - tdiff, margin); // we don't go beyond the margin
+  const trR = Math.min(trH + tdiff, width - margin);
 
-  // helperFrames();
-  // helperText(tr, tl, th, trR, trL);
-  // helperTransitions(tr, tl, th, trR, trL);
+  helperFrames();
+  helperText(tr, tl, th, trR, trL);
+  helperTransitions(tr, tl, th, trR, trL, trH);
 
-  // CASE: first
-  if (lineIndex === 0) {
+  // TRANSITION FORWARD
+  if (tr <= trH && lineIndex < processedLines.length - 1) {
+    verticalShift = 0;
+    lineIndex += 1;
+    alphaMixR = 0;
+    alphaMixL = 255;
+    // console.log(`transition forward | verticalShift: ${verticalShift}`);
+  }
 
-    // right fade: next link appears, moves up
-    // using th for practical reasons (guaranteeing a full fade out in any scenario using trL)
-    const startCutOff = Math.min(trR, margins + processedLines[lineIndex].tr);
-    if (tr <= startCutOff) {
-      verticalShift = map(tr, startCutOff, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
-      alphaMixR = map(tr, startCutOff, halfWidth, 0, 255, true);
-      // console.log(`right fade (1st) | startCutOff: ${startCutOff}`);
-      // console.log(`right fade (1st) | verticalShift: ${verticalShift.toPrecision(6)}`);
-      // console.log(`right fade (1st) | alphaMixR: ${alphaMixR.toPrecision(6)}`);
-    }
+  // TRANSITION BACKWARD
+  if (tl >= trH && lineIndex > 0) {
+    verticalShift = processedLines[lineIndex].vp;
+    lineIndex -= 1;
+    alphaMixL = 0;
+    alphaMixR = 255;
+    // console.log(`transition backward | verticalShift: ${verticalShift}`);
+  }
 
-    if (xPosition === margins) alphaMixR = 0;
+  // left fade: previous link (dis)appears
+  if (tl <= trH && th >= trR) {
+    alphaMixL = map(tl, trL, trH, 0, 255, true);
+    // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
+  }
 
-    // TRANSITION FORWARD
-    if (tr <= halfWidth) {
-      verticalShift = 0;
-      lineIndex += 1;
-      alphaMixR = 0;
-      alphaMixL = 255;
-      // console.log(`transition forward (1st) | verticalShift: ${verticalShift.toPrecision(3)}`);
-    }
+  if (tl < trL) {
+    alphaMixL = 0;
+    // console.log(`left fade check | alphaMixL: ${alphaMixL}`);
+  }
 
-  // CASE: last
-  } else if (lineIndex === processedLines.length - 1) {
+  // right fade: next link (dis)appears
+  if (th >= trL && th <= trH) {
+    alphaMixR = map(th, trH, trL, 0, 255, true);
+    // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
+  }
 
-    // TRANSITION BACKWARD
-    if (tl >= halfWidth) {
-      verticalShift = processedLines[lineIndex].vp;
-      lineIndex -= 1;
-      alphaMixL = 255;
-      alphaMixR = 255;
-      // console.log(`transition backward (last) | verticalShift: ${verticalShift}`);
-    }
+  if (th > trH) {
+    alphaMixR = 0;
+    console.log(`right fade check | alphaMixR: ${alphaMixR}`);
+  }
 
-    // left fade: previous link disappears
-    if (tl <= halfWidth && tl >= trL) {
-      alphaMixL = map(tl, trL + 5, halfWidth - 5, 0, 255, true);
-      // console.log(`left fade (last) | tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
-      // console.log(`left fade (last) | alphaMixL: ${alphaMixL.toPrecision(6)}`);
-    }
+  // vertical shift
+  if (tr <= trR && tr >= trH && lineIndex < processedLines.length - 1) {
+    verticalShift = map(tr, trR, trH, 0, lineHeight * processedLines[lineIndex].n, true);
+    // console.log(`moving | verticalShift: ${verticalShift.toPrecision(6)}`);
+  }
 
-  // CASE: all others
-  } else {
-
-    // TRANSITION FORWARD
-    if (tr <= halfWidth) {
-      verticalShift = 0;
-      lineIndex += 1;
-      alphaMixR = 0;
-      alphaMixL = 255;
-      // console.log(`transition forward | verticalShift: ${verticalShift}`);
-    }
-
-    // TRANSITION BACKWARD
-    if (tl >= halfWidth) {
-      verticalShift = processedLines[lineIndex].vp;
-      lineIndex -= 1;
-      alphaMixL = 0;
-      alphaMixR = 255;
-      // console.log(`transition backward | verticalShift: ${verticalShift}`);
-    }
-
-    // left fade: previous link disappears
-    if (tl <= halfWidth && tl >= trL) {
-      alphaMixL = map(tl, trL, halfWidth, 0, 255, true);
-      // console.log(`left fade | tr: ${tr.toPrecision(6)} | alphaMixR: ${alphaMixR.toPrecision(6)}`);
-      // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
-    }
-
-    // right fade: next link appears, moves up
-    if (tr >= halfWidth && tr <= trR) {
-      verticalShift = map(tr, trR, halfWidth, 0, lineHeight * processedLines[lineIndex].n, true);
-      alphaMixR = map(tr, trR, halfWidth, 0, 255, true);
-      // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
-    }
-
-    // correcting for right fade imprecision above
-    if (tl <= trL && tr >= trR) {
-      verticalShift = 0;
-      // console.log(`vertical check | verticalShift: ${verticalShift}`);
-    }
-
+  // vertical shift safeguard
+  if (tl <= trH && tr >= trR && lineIndex < processedLines.length - 1) {
+    verticalShift = 0;
+    // console.log(`vertical check | verticalShift: ${verticalShift}`);
   }
 
 }
@@ -345,7 +311,7 @@ function prepareLines() {
 
       // console.log(`case ¬, line ${cLine}`);
 
-      // TODO: the + 2 doesn't make sense, most likely a margins issue
+      // TODO: the + 2 doesn't make sense, most likely a margin issue
       pLines.push({
         "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 2)
@@ -357,7 +323,7 @@ function prepareLines() {
       // console.log(`case |, line ${cLine}`);
 
       pLines.push({
-        "ws": lines[lIndex - 1].search(/\S|$/) + 2,
+        "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 3)
       });
 
@@ -382,7 +348,7 @@ function prepareLines() {
     // CASE: first
     if (i === 0) {
       pLines[i].tl = 0;
-      pLines[i].tr = pLines[i + 1].ws * charWidth - margins;
+      pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i].l.length - 1;
       pLines[i].nn = pLines[i + 1].l.length - 1;
@@ -391,7 +357,7 @@ function prepareLines() {
     // CASE: last
     } else if (i === pLines.length - 1) {
       pLines[i].tl = pLines[i - 1].tr;
-      pLines[i].tr = (pLines[i].l[pLines[i].l.length - 1 - 1].length - 1) * charWidth;
+      pLines[i].tr = (pLines[i].ws + 2) * charWidth;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].nn = pLines[i].l.length - 1;
@@ -400,7 +366,7 @@ function prepareLines() {
     // CASE: all others
     } else {
       pLines[i].tl = pLines[i - 1].tr;
-      pLines[i].tr = pLines[i + 1].ws * charWidth - margins;
+      pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].nn = pLines[i + 1].l.length - 1;
@@ -433,15 +399,15 @@ function helperFrames() {
   noFill();
   stroke(255,0,0);
   strokeWeight(2);
-  rect(0,0, width, height, 5);
+  rect(1,1, width - 2, height - 2, 5);
   pop();
 
-  // margins frame
+  // margin frame
   push();
   noFill();
   stroke(0,0,255);
   strokeWeight(1);
-  rect(margins,margins, width - 2 * margins, height - 2 * margins);
+  rect(margin, margin, width - 2 * margin, height - 2 * margin);
   pop();
 
 }
@@ -474,41 +440,23 @@ function helperText(tr, tl, th, trR, trL) {
 
 }
 
-function helperTransitions(tr, tl, th, trR, trL) {
+function helperTransitions(tr, tl, th, trR, trL, trH) {
 
   push();
   textAlign(LEFT);
   textSize(15);
+  strokeWeight(1);
   let c;
 
+  // link guides (fixed) --------------------
   // halfWidth: middle, horizontal/vertical
-  stroke(0);
-  line(halfWidth, 0, halfWidth, height); // vertical
+  c = color(0);
+  stroke(c);
+  // line(halfWidth, 0, halfWidth, height); // vertical
+  line(trH, 0, trH, height); // vertical
   line(0, height/2, width, height/2); // horizontal
-
-  // tr: transition Right
-  c = color(255,0,0);
-  stroke(c);
-  line(tr, 0, tr, height);
-  noStroke();
   fill(c);
-  text('tr', tr + 2, 10);
-
-  // tl: transition Left
-  c = color(0,0,255);
-  stroke(c);
-  line(tl, 0, tl, height);
-  noStroke();
-  fill(c);
-  text('tl', tl + 2, 10);
-
-  // th: transition boundary (midpoint transitions left/right, neon green)
-  c = color(0,255,0);
-  stroke(c);
-  line(th, 0, th, height);
-  noStroke();
-  fill(c);
-  text('th', th + 2, 10);
+  text('trH', trH + 2, 15);
 
   // trR & trL: mid-transition on each side of halfWidth (purple)
   c = color(168, 50, 162);
@@ -517,8 +465,33 @@ function helperTransitions(tr, tl, th, trR, trL) {
   line(trL, 0, trL, height);
   noStroke();
   fill(c);
-  text('trL', trL + 2, 10);
-  text('trR', trR + 2, 10);
+  text('trL', trL + 2, 15);
+  text('trR', trR + 2, 15);
+
+  // link guides (following mouse) ----------
+  // tr: transition right (red)
+  c = color(255,0,0);
+  stroke(c);
+  line(tr, 0, tr, height);
+  noStroke();
+  fill(c);
+  text('tr', tr + 2, 30);
+
+  // tl: transition left (blue)
+  c = color(0,0,255);
+  stroke(c);
+  line(tl, 0, tl, height);
+  noStroke();
+  fill(c);
+  text('tl', tl + 2, 30);
+
+  // th: transition boundary (midpoint transitions left/right, neon green)
+  c = color(0,255,0);
+  stroke(c);
+  line(th, 0, th, height);
+  noStroke();
+  fill(c);
+  text('th', th + 2, 30);
 
   pop();
 
