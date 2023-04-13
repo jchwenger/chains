@@ -214,56 +214,63 @@ function transitions() {
   helperText(tr, tl, th, trR, trL);
   helperTransitions(tr, tl, th, trR, trL, trH);
 
-  // TRANSITION FORWARD
-  if (tr <= trH && lineIndex < processedLines.length - 1) {
-    verticalShift = 0;
-    lineIndex += 1;
-    alphaMixR = 0;
-    alphaMixL = 255;
-    // console.log(`transition forward | verticalShift: ${verticalShift}`);
-  }
-
-  // TRANSITION BACKWARD
-  if (tl >= trH && lineIndex > 0) {
-    verticalShift = processedLines[lineIndex].vp;
-    lineIndex -= 1;
-    alphaMixL = 0;
-    alphaMixR = 255;
-    // console.log(`transition backward | verticalShift: ${verticalShift}`);
-  }
-
-  // left fade: previous link (dis)appears
+  // LEFT -----------------------------------
+  // fade: previous link (dis)appears
   if (tl <= trH && th >= trR) {
     alphaMixL = map(tl, trL, trH, 0, 255, true);
     // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
   }
 
+  // check
   if (tl < trL) {
     alphaMixL = 0;
     // console.log(`left fade check | alphaMixL: ${alphaMixL}`);
   }
 
-  // right fade: next link (dis)appears
+  // RIGHT ----------------------------------
+  // fade: next link (dis)appears
   if (th >= trL && th <= trH) {
     alphaMixR = map(th, trH, trL, 0, 255, true);
     // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
   }
 
+  // check
   if (th > trH) {
     alphaMixR = 0;
-    console.log(`right fade check | alphaMixR: ${alphaMixR}`);
+    // console.log(`right fade check | alphaMixR: ${alphaMixR}`);
   }
 
   // vertical shift
   if (tr <= trR && tr >= trH && lineIndex < processedLines.length - 1) {
     verticalShift = map(tr, trR, trH, 0, lineHeight * processedLines[lineIndex].n, true);
     // console.log(`moving | verticalShift: ${verticalShift.toPrecision(6)}`);
-  }
-
   // vertical shift safeguard
-  if (tl <= trH && tr >= trR && lineIndex < processedLines.length - 1) {
+  } else {
     verticalShift = 0;
     // console.log(`vertical check | verticalShift: ${verticalShift}`);
+  }
+
+  // ----------------------------------------
+  // TRANSITIONS (coming after, preventing flickering)
+
+  // FORWARD
+  if (tr <= trH && lineIndex < processedLines.length - 1) {
+    verticalShift = 0;
+    alphaMixL = 255;
+    alphaMixR = 0;
+    lineIndex += 1;
+    // console.log(`transition forward | verticalShift: ${verticalShift}`);
+    // console.log(`transition forward | alphaMixL: ${alphaMixL}, alphaMixR: ${alphaMixR}`);
+  }
+
+  // BACKWARD
+  if (tl >= trH && lineIndex > 0) {
+    verticalShift = processedLines[lineIndex].vp;
+    alphaMixL = 0;
+    alphaMixR = 255;
+    lineIndex -= 1;
+    // console.log(`transition backward | verticalShift: ${verticalShift}`);
+    // console.log(`transition backward | alphaMixL: ${alphaMixL}, alphaMixR: ${alphaMixR}`);
   }
 
 }
@@ -351,7 +358,6 @@ function prepareLines() {
       pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i].l.length - 1;
-      pLines[i].nn = pLines[i + 1].l.length - 1;
       pLines[i].vp = 0;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1); // desired shift: current n° lines - 1
     // CASE: last
@@ -360,7 +366,6 @@ function prepareLines() {
       pLines[i].tr = (pLines[i].ws + 2) * charWidth;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
-      pLines[i].nn = pLines[i].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
     // CASE: all others
@@ -369,7 +374,6 @@ function prepareLines() {
       pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
-      pLines[i].nn = pLines[i + 1].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
     }
