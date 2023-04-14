@@ -29,10 +29,10 @@ let leftBoundary;
 let rightBoundary;
 let alphaMixL;
 let alphaMixR;
-
 let verticalShift;
 
-// let ik;
+// intro
+let reading;
 
 function preload() {
   fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
@@ -98,7 +98,8 @@ function setup() {
 
   // Calculate text width and boundaries
   leftBoundary = margin;
-  rightBoundary = width - margin - maxTextWidth;
+  // rightBoundary = width - margin - maxTextWidth;
+  rightBoundary = halfWidth - maxTextWidth;
 
   xPosition = leftBoundary;
   velocity = 0;
@@ -109,10 +110,29 @@ function setup() {
   alphaMixL = 255;
   alphaMixR = 0;
 
+  reading = true;
 }
 
 function draw() {
   background(255);
+
+  if (reading) {
+    intro();
+  } else {
+    chain();
+  }
+}
+
+function intro() {
+  push();
+  textSize(40);
+  textAlign(LEFT);
+  text(`Chains`, margin, margin);
+  textSize(25);
+  pop();
+}
+
+function chain() {
 
   // dragging logic
   if (dragging) {
@@ -243,16 +263,20 @@ function transitions() {
   }
 
   // vertical shift, using fixed points from previous link
-  if (tl >= trL && tl <= trH && lineIndex < processedLines.length - 1) {
-    verticalShift = - map(tl, trL, trH, 0, lineHeight * processedLines[lineIndex].n, true);
-    console.log(`moving from the left | verticalShift: ${verticalShift.toPrecision(6)}`);
-  } else if (tr <= trR && tr >= trH && lineIndex < processedLines.length - 1) {
-    verticalShift = map(tr, trR, trH, 0, lineHeight * processedLines[lineIndex].n, true);
-    console.log(`moving from the right | verticalShift: ${verticalShift.toPrecision(6)}`);
-    // vertical shift safeguard
-  } else {
+  if (th >= trL && th <= trH && lineIndex < processedLines.length - 1) {
+    verticalShift = map(th, trH, trL, 0, lineHeight * processedLines[lineIndex].n, true);
+    // console.log(`moving forward (from the right) | verticalShift: ${verticalShift.toPrecision(6)}`);
+  }
+
+  // check
+  if (th < trL) {
+    verticalShift = lineHeight * processedLines[lineIndex].n;
+    // console.log(`vertical check 1 | verticalShift: ${verticalShift.toPrecision(6)}`);
+  }
+
+  if (th > trH) {
     verticalShift = 0;
-    console.log(`vertical check | verticalShift: ${verticalShift}`);
+    // console.log(`vertical check 2 | verticalShift: ${verticalShift.toPrecision(6)}`);
   }
 
   // ----------------------------------------
@@ -264,7 +288,7 @@ function transitions() {
     alphaMixL = 255;
     alphaMixR = 0;
     lineIndex += 1;
-    // console.log(`transition forward | verticalShift: ${verticalShift}`);
+    // console.log(`transition forward | verticalShift: ${verticalShift.toPrecision(6)}`);
     // console.log(`transition forward | alphaMixL: ${alphaMixL}, alphaMixR: ${alphaMixR}`);
   }
 
@@ -274,10 +298,11 @@ function transitions() {
     alphaMixL = 0;
     alphaMixR = 255;
     lineIndex -= 1;
-    // console.log(`transition backward | verticalShift: ${verticalShift}`);
+    // console.log(`transition backward | verticalShift: ${verticalShift.toPrecision(6)}`);
     // console.log(`transition backward | alphaMixL: ${alphaMixL}, alphaMixR: ${alphaMixR}`);
   }
 
+  // console.log(`verticalShift: ${verticalShift.toPrecision(6)}`);
 }
 
 // ----------------------------------------
@@ -365,11 +390,6 @@ function prepareLines() {
       pLines[i].np = pLines[i].l.length - 1;
       pLines[i].vp = 0;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1); // desired shift: current n° lines - 1
-      pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2; // wasteful for 1 iteration,
-      pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // see below for trH/trL/trR
-      pLines[i].trHp = Math.min(halfWidth, margin + pLines[i].th);
-      pLines[i].trLp = Math.max(pLines[i].trHp - pLines[i].td, margin);
-      pLines[i].trRp = Math.min(pLines[i].trHp + pLines[i].td, width - margin);
     // CASE: last
     } else if (i === pLines.length - 1) {
       pLines[i].tl = pLines[i - 1].tr;
@@ -378,9 +398,6 @@ function prepareLines() {
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
-      pLines[i].trHp = pLines[i - 1].trH; // previous fixed points
-      pLines[i].trLp = pLines[i - 1].trL;
-      pLines[i].trRp = pLines[i - 1].trR;
     // CASE: all others
     } else {
       pLines[i].tl = pLines[i - 1].tr;
@@ -389,15 +406,19 @@ function prepareLines() {
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
-      pLines[i].trHp = pLines[i - 1].trH; // previous fixed points
-      pLines[i].trLp = pLines[i - 1].trL;
-      pLines[i].trRp = pLines[i - 1].trR;
     }
     pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2; // midpoint
     pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // diff for fades        fixed points:
     pLines[i].trH = Math.min(halfWidth, margin + pLines[i].th);             // transition: half
-    pLines[i].trL = Math.max(pLines[i].trH - pLines[i].td, margin);         // transition: left
+    if (pLines[i].trH < halfWidth && pLines[i].trH + pLines[i].td > halfWidth) {
+      pLines[i].td = halfWidth - pLines[i].trH;
+    }
     pLines[i].trR = Math.min(pLines[i].trH + pLines[i].td, width - margin); // transition: right
+    pLines[i].trL = Math.max(pLines[i].trH - pLines[i].td, margin);         // transition: left
+    const ii = Math.max(0, i - 1);
+    pLines[i].trHp = pLines[ii].trH; // previous fixed points
+    pLines[i].trLp = pLines[ii].trL;
+    pLines[i].trRp = pLines[ii].trR;
   }
 
   // console.log("========================================");
@@ -572,6 +593,10 @@ function touchEnded() {
 }
 
 function keyPressed() {
+
+  if (key = ' ') {
+    reading = !reading;
+  }
 
   if (keyCode === LEFT_ARROW) {
     xPosition -= 1;
