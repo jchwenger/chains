@@ -2,6 +2,7 @@ let margin;
 let halfWidth;
 
 // text business
+// -------------
 // https://p5js.org/reference/#/p5/textFont
 let lines;
 let fontRegular;
@@ -14,16 +15,28 @@ let charWidth;
 let charZoomFactor;
 let processedLines;
 
-// scrolling
-// ---------
+// intro
+let reading;
+let fileIndex;
+
+// scrolling (reading)
+// -------------------
 // physics system
 let previousMouseX;
 let xPosition;
-let velocity;
-let friction;
+let xVelocity;
+let xFriction;
 let dragging;
 
+// scrolling (intro)
+// -----------------
+let previousMouseY;
+let yPosition;
+let yVelocity;
+let yFriction;
+
 // limits & transitions
+// --------------------
 let maxTextWidth;
 let leftBoundary;
 let rightBoundary;
@@ -31,16 +44,20 @@ let alphaMixL;
 let alphaMixR;
 let verticalShift;
 
-// intro
-let reading;
+// limits (intro)
+// --------------
+let topBoundary;
+let bottomBoundary;
+
+// ----------------------------------------
+// P5.js functions
 
 function preload() {
-  fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
+  // fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   fontRegular = loadFont('assets/fonts/LinBiolinum_R.otf');
-  fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
-  fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
-  // lines = loadStrings('assets/bras-de-fer-de-lance.chain.txt');
-  // lines = loadStrings('assets/anothering.chain.txt');
+  // fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
+  // fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
+  files = loadStrings('assets/filenames.txt');
   lines = loadStrings('assets/riverrun.chain.txt');
 
   // httpGet(
@@ -50,24 +67,58 @@ function preload() {
 }
 
 function setup() {
+
   canvasSize = 700;
   createCanvas(canvasSize, canvasSize * .8);
 
-  // remove last empty line if there is one
-  lines = lines.filter(l => l.length > 0);
+  halfWidth = width/2;
+  margin = 50;
 
-  // for (const el of lines) {
-  //   if (el) console.log(el);
-  // }
+  // TODO: better way of calculating lineHeight?
+  lineHeight = canvasSize/25;
 
+  fill(0)
   textFont(fontRegular);
   textAlign(CENTER);
-
   currentTextSize = canvasSize/15;
-  fill(0)
   textSize(currentTextSize);
 
-  verticalShift = 0;
+  // remove last empty line if there is one
+  files = files.filter(l => l.length > 0);
+
+  fileIndex = 0;
+
+  reading = false;
+  dragging = false;
+
+  yPosition = 0;
+  yVelocity = 0;
+  yFriction = 0.85;
+  previousMouseY = mouseY;
+
+  topBoundary = - height - margin + files.length * 30;
+  bottomBoundary = 0;
+
+  setupChain(files[fileIndex]);
+
+}
+
+function draw() {
+  background(255);
+
+  if (!reading) {
+    intro();
+  } else {
+    chain();
+  }
+}
+
+// ----------------------------------------
+// chains
+
+function setupChain(filename) {
+
+  lines = lines.filter(l => l.length > 0);
 
   // find the max charWidth of the current lines
   const widestChar = Array.from(new Set(lines.join("").split("")))
@@ -75,12 +126,6 @@ function setup() {
 
   charZoomFactor = .8;
   charWidth = textWidth(widestChar) * charZoomFactor;
-
-  margin = charWidth * 2;
-  halfWidth = width/2;
-
-  lineHeight = canvasSize/25;
-  whiteSpaceToCrop = 0;
 
   lineIndex = 0;
   // processedLines is an array of objects:
@@ -91,45 +136,81 @@ function setup() {
   //   "tl": transition left, "tr": transition right, "th": transition half/middle
   // }
   processedLines = prepareLines();
-  console.log(processedLines);
+  // console.log(processedLines);
 
   const lastGroup = processedLines[processedLines.length - 1].l;
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
 
   // Calculate text width and boundaries
   leftBoundary = margin;
-  // rightBoundary = width - margin - maxTextWidth;
   rightBoundary = halfWidth - maxTextWidth;
 
   xPosition = leftBoundary;
-  velocity = 0;
-  dragging = false;
-  previousMouseX;
-  friction = 0.85;
+  xVelocity = 0;
+  previousMouseX = mouseX;
+  xFriction = 0.85;
 
+  verticalShift = 0;
   alphaMixL = 255;
   alphaMixR = 0;
 
-  reading = true;
-}
-
-function draw() {
-  background(255);
-
-  if (reading) {
-    intro();
-  } else {
-    chain();
-  }
 }
 
 function intro() {
+
+  // dragging logic
+  if (dragging) {
+
+    let deltaY = mouseY - previousMouseY;
+    // Update the text position directly based on mouse movement
+    yPosition += deltaY;
+    // Record the last velocity for momentum when mouse is released
+    yVelocity = deltaY;
+
+  } else {
+
+    // Apply xFriction to velocity when not dragging
+    yVelocity *= yFriction;
+    if (Math.abs(yVelocity) < 0.001) yVelocity = 0;
+    // Update text position based on velocity for momentum
+    yPosition += yVelocity;
+
+  }
+
+  // Update text position based on velocity
+  yPosition += yVelocity;
+
+  // Constrain text position within boundaries
+  yPosition = constrain(yPosition, topBoundary, bottomBoundary);
+
   push();
+
   textSize(40);
-  textAlign(LEFT);
-  text(`Chains`, margin, margin);
+  textAlign(RIGHT);
+  text(`Chains`, width - margin, margin);
+
+  translate(0, yPosition);
+
   textSize(25);
+  textAlign(LEFT);
+  for (let i = 0; i < files.length; i++) {
+    fill(0);
+    fname = files[i]
+      .replace('.chain.txt', '')
+      .replace(/[.-]/g, ' ');
+    const t = `${fname}`;
+    text(t, margin, margin + 30 + i * 30);
+    noFill();
+    rect(margin, margin + 10 + i * 30, textWidth(t) + 5, 30);
+    // TODO: cursor change
+    // cursor('pointer');
+    // cursor('arrow');
+  }
   pop();
+
+  // Update previous mouse X position
+  previousMouseY = mouseY;
+
 }
 
 function chain() {
@@ -141,20 +222,20 @@ function chain() {
     // Update the text position directly based on mouse movement
     xPosition += deltaX;
     // Record the last velocity for momentum when mouse is released
-    velocity = deltaX;
+    xVelocity = deltaX;
 
   } else {
 
-    // Apply friction to velocity when not dragging
-    velocity *= friction;
-    if (Math.abs(velocity) < 0.001) velocity = 0;
+    // Apply xFriction to velocity when not dragging
+    xVelocity *= xFriction;
+    if (Math.abs(xVelocity) < 0.001) xVelocity = 0;
     // Update text position based on velocity for momentum
-    xPosition += velocity;
+    xPosition += xVelocity;
 
   }
 
   // Update text position based on velocity
-  xPosition += velocity;
+  xPosition += xVelocity;
 
   // Constrain text position within boundaries
   xPosition = constrain(xPosition, rightBoundary, leftBoundary);
@@ -203,9 +284,7 @@ function chain() {
 
 function writeLine(l, h, alpha, verticalShift) {
   push();
-
   fill(0, alpha);
-
   // console.log(`current horizontal shift: ${xPosition} | vertical shift: ${vS} | current ws: ${processedLines[lineIndex + 1].ws}, * char width: ${transition.toPrecision(6)}`);
   translate(xPosition, 0);
   for (let j = 0; j < l.length; j++) {
@@ -334,48 +413,36 @@ function prepareLines() {
 
   // loop until we reach the end
   while (lIndex < lines.length - 2) {
-
     // move forward until we encounter ¬ or | at the end of the line
     while (lIndex < lines.length - 2 && !lines[lIndex + 1].match(/[¬|]$/)) {
       lIndex = lIndex + 1;
     }
-
     lIndex = lIndex + 1;
     cLine = lines[lIndex];
-
     // CASE: two-lines split: the main line is the basis for cropping
     if (cLine[cLine.length - 1] === "¬") {
-
       // console.log(`case ¬, line ${cLine}`);
-
       // TODO: the + 2 doesn't make sense, most likely a margin issue
       pLines.push({
         "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 2)
       });
-
     // CASE: three-lines split: the previous line is the basis for cropping
     } else if (cLine[cLine.length - 1] === "|") {
-
       // console.log(`case |, line ${cLine}`);
-
       pLines.push({
         "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 3)
       });
-
     // CASE: all others: : the main line is the basis for cropping
     // TODO: is this third branch necessary?
     } else {
-
       // console.log(`case other, line ${cLine}`);
-
       pLines.push({
         "ws": cLine.search(/\S|$/) + 2,
         "l": getCurrentLines(lIndex, 1)
       });
     }
-
   }
 
   // calculate: - transitions (tl: left, tr: right, th: half/middle, td: diff, for fades)
@@ -465,7 +532,7 @@ function helperText(tr, tl, th, trR, trL) {
   textSize(15);
   stroke(0);
 
-  text(`velocity: ${velocity.toPrecision(4)}`, 10, height - 50);
+  text(`xVelocity: ${xVelocity.toPrecision(4)}`, 10, height - 50);
   text(`lineIndex: ${lineIndex}/${processedLines.length - 1}`, 10, height - 30);
   text(`xPosition: ${xPosition.toPrecision(6)}`, 10, height - 10);
 
@@ -576,6 +643,7 @@ function helperTransitions(tr, tl, th) {
 
 function mousePressed() {
   dragging = true;
+  previousMouseY = mouseY;
   previousMouseX = mouseX;
 }
 
@@ -585,6 +653,7 @@ function mouseReleased() {
 
 function touchStarted() {
   dragging = true;
+  previousMouseY = mouseY;
   previousMouseX = mouseX;
 }
 
@@ -594,7 +663,8 @@ function touchEnded() {
 
 function keyPressed() {
 
-  if (key = ' ') {
+  // space
+  if (key = 32) {
     reading = !reading;
   }
 
