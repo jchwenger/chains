@@ -201,7 +201,6 @@ function drawHome() {
     cursor('pointer');
   } else {
     // text(`out | ${mouseX}, ${mouseY}`, mouseX, mouseY);
-    cursor('default');
   }
   pop();
 }
