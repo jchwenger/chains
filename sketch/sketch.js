@@ -20,6 +20,9 @@ let reading;
 let fileIndex;
 let processedFiles;
 
+// home button
+let homeButton;
+
 // scrolling (reading)
 // -------------------
 // physics system
@@ -96,6 +99,8 @@ function setup() {
   topBoundary = - height - margin + files.length * 30;
   bottomBoundary = 0;
 
+  homeButton = prepareHome();
+
   processedFiles = prepareFiles();
   // console.log(processedFiles);
 
@@ -111,6 +116,8 @@ function draw() {
   } else {
     chain();
   }
+
+  drawHome();
 }
 
 // --------------------------------------------------------------------------------
@@ -164,6 +171,41 @@ function setupChain(newLines, shiftToReading = true) {
   if (shiftToReading) backToReading();
 }
 
+function prepareHome() {
+  push();
+  textSize(40);
+  const t ='Chains';
+  const b = {
+    "t": t,
+    "w": textWidth(t),
+    "a": textAscent(t),
+    "d":  textDescent(t),
+  };
+  pop();
+  return b;
+}
+
+function drawHome() {
+  push();
+  textSize(40);
+  textAlign(RIGHT);
+  fill(255);
+  noStroke();
+  rect(width - margin - homeButton.w, margin - homeButton.a, homeButton.w, homeButton.a + homeButton.d);
+  fill(0);
+  text(homeButton.t, width - margin, margin);
+  // where is the mouse?
+  textSize(15);
+  if (mouseX > width - margin - homeButton.w && mouseX < width - margin && mouseY > margin - homeButton.a && mouseY < margin + homeButton.d) {
+    // text(`in | ${mouseX}, ${mouseY}`, mouseX, mouseY);
+    cursor('pointer');
+  } else {
+    // text(`out | ${mouseX}, ${mouseY}`, mouseX, mouseY);
+    cursor('default');
+  }
+  pop();
+}
+
 function intro() {
 
   // dragging logic
@@ -193,10 +235,6 @@ function intro() {
 
   push();
 
-  textSize(40);
-  textAlign(RIGHT);
-  text(`Chains`, width - margin, margin);
-
   translate(0, yPosition);
 
   textSize(25);
@@ -204,8 +242,8 @@ function intro() {
   for (let i = 0; i < files.length; i++) {
     fill(0);
     text(processedFiles[i].name, margin, processedFiles[i].yB);
-    noFill();
-    rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
+    // noFill();
+    // rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
   }
 
   // where is the mouse? If inside one of the file rectangles, ready to select
@@ -332,9 +370,9 @@ function transitions() {
   const trLp = processedLines[lineIndex].trLp;
   const trRp = processedLines[lineIndex].trRp;
 
-  helperFrames();
-  helperText(tr, tl, th, trR, trL);
-  helperTransitions(tr, tl, th);
+  // helperFrames();
+  // helperText(tr, tl, th, trR, trL);
+  // helperTransitions(tr, tl, th);
 
   // LEFT ---------------------------------------------------------------------------
   // fade: previous link (dis)appears, using fixed points from previous link
@@ -719,6 +757,10 @@ function mouseClicked() {
       cursor('default');
     } else {
       // console.log(`no file selected`);
+    }
+  } else {
+    if (mouseX > width - margin - homeButton.w && mouseX < width - margin && mouseY > margin - homeButton.a && mouseY < margin + homeButton.d) {
+      reading = false;
     }
   }
 }
