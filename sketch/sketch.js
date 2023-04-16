@@ -50,7 +50,7 @@ let verticalShift;
 let topBoundary;
 let bottomBoundary;
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // P5.js functions
 
 function preload() {
@@ -86,7 +86,6 @@ function setup() {
   fileIndex = 0;
 
   reading = false;
-  loading = false;
   dragging = false;
 
   yPosition = 0;
@@ -100,28 +99,28 @@ function setup() {
   processedFiles = prepareFiles();
   // console.log(processedFiles);
 
-  loadChain(files[fileIndex]);
+  loadChain(files[fileIndex], false); // load chain but don't shift to reading
 
 }
 
 function draw() {
   background(255);
 
-  if (!reading && !loading) {
+  if (!reading) {
     intro();
   } else {
     chain();
   }
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // chains
 
-function loadChain(filename) {
-  loadStrings(`assets/${filename}`, setupChain);
+function loadChain(filename, shiftToReading = true) {
+  loadStrings(`assets/${filename}`, l => setupChain(l, shiftToReading));
 }
 
-function setupChain(newLines) {
+function setupChain(newLines, shiftToReading = true) {
 
   lines = newLines.filter(l => l.length > 0);
 
@@ -161,8 +160,8 @@ function setupChain(newLines) {
   alphaMixL = 255;
   alphaMixR = 0;
 
-  console.log(`chain set up`);
-  backToReading();
+  // console.log(`chain set up, shift to reading? ${shiftToReading}`);
+  if (shiftToReading) backToReading();
 }
 
 function intro() {
@@ -315,7 +314,7 @@ function writeLine(l, h, alpha, verticalShift) {
   pop();
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // transitions: chaining utils
 
 function transitions() {
@@ -337,7 +336,7 @@ function transitions() {
   helperText(tr, tl, th, trR, trL);
   helperTransitions(tr, tl, th);
 
-  // LEFT -----------------------------------
+  // LEFT ---------------------------------------------------------------------------
   // fade: previous link (dis)appears, using fixed points from previous link
   if (tl <= trHp && tl >= trLp) {
     alphaMixL = map(tl, trLp, trHp, 0, 255, true);
@@ -350,7 +349,7 @@ function transitions() {
     // console.log(`left fade check | alphaMixL: ${alphaMixL}`);
   }
 
-  // RIGHT ----------------------------------
+  // RIGHT --------------------------------------------------------------------------
   // fade: next link (dis)appears
   if (th >= trL && th <= trH) {
     alphaMixR = map(th, trH, trL, 0, 255, true);
@@ -363,7 +362,8 @@ function transitions() {
     // console.log(`right fade check | alphaMixR: ${alphaMixR}`);
   }
 
-  // vertical shift, using fixed points from previous link
+  // VERTICAL -----------------------------------------------------------------------
+  // shifts using fixed points from previous link
   if (th >= trL && th <= trH && lineIndex < processedLines.length - 1) {
     verticalShift = map(th, trH, trL, 0, lineHeight * processedLines[lineIndex].n, true);
     // console.log(`moving forward (from the right) | verticalShift: ${verticalShift.toPrecision(6)}`);
@@ -380,7 +380,7 @@ function transitions() {
     // console.log(`vertical check 2 | verticalShift: ${verticalShift.toPrecision(6)}`);
   }
 
-  // ----------------------------------------
+  // --------------------------------------------------------------------------------
   // TRANSITIONS (coming after, preventing flickering)
 
   // FORWARD
@@ -407,12 +407,12 @@ function transitions() {
 }
 
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // file processing
 
 function backToReading() {
   reading = true;
-  console.log(`back to reading`);
+  // console.log(`back to reading`);
 }
 function loadNewFile(i) {
   fileIndex = i;
@@ -420,7 +420,7 @@ function loadNewFile(i) {
   yPosition = 0;
   yVelocity = 0;
 
-  console.log(`loading ${files[fileIndex]}`);
+  // console.log(`loading ${files[fileIndex]}`);
   loadChain(files[fileIndex]);
 
 }
@@ -445,7 +445,7 @@ function prepareFiles() {
   return pFiles;
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // text processing
 
 function cleanLine(l) {
@@ -562,7 +562,7 @@ function prepareLines() {
   return pLines;
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // helpers
 
 function helperFrames() {
@@ -621,7 +621,7 @@ function helperTransitions(tr, tl, th) {
   strokeWeight(1);
   let c, v;
 
-  // link guides (fixed) --------------------
+  // link guides (fixed) ------------------------------------------------------------
   v = 15;
   // halfWidth: middle, horizontal/vertical
   c = color(0);
@@ -642,7 +642,7 @@ function helperTransitions(tr, tl, th) {
   text('trL', processedLines[lineIndex].trL + 2, v);
   text('trR', processedLines[lineIndex].trR + 2, v);
 
-  // previous link guides (fixed) -----------
+  // previous link guides (fixed) ---------------------------------------------------
   v = 30;
   // dashes: https://editor.p5js.org/jeffThompson/sketches/pTeiuK7PQ
   drawingContext.setLineDash([20, 5]);
@@ -669,7 +669,7 @@ function helperTransitions(tr, tl, th) {
 
   drawingContext.setLineDash([]); // reset dashes
 
-  // link guides (following mouse) ----------
+  // link guides (following mouse) --------------------------------------------------
   v = 45;
   // tr: transition right (red)
   c = color(255,0,0);
@@ -699,7 +699,7 @@ function helperTransitions(tr, tl, th) {
 
 }
 
-// ----------------------------------------
+// --------------------------------------------------------------------------------
 // scrolling mechanism
 
 function mouseClicked() {
@@ -714,7 +714,7 @@ function mouseClicked() {
       }
     }
     if (j != null && mouseX > margin && mouseX < margin + processedFiles[j].w) {
-      console.log(`fileIndex: ${fileIndex}, j: ${j}`);
+      // console.log(`fileIndex: ${fileIndex}, j: ${j}`);
       loadNewFile(j);
       cursor('default');
     } else {
