@@ -18,6 +18,7 @@ let processedLines;
 // intro
 let reading;
 let fileIndex;
+let processedFiles;
 
 // scrolling (reading)
 // -------------------
@@ -53,17 +54,13 @@ let bottomBoundary;
 // P5.js functions
 
 function preload() {
-  // fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   fontRegular = loadFont('assets/fonts/LinBiolinum_R.otf');
+  // fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   // fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
   // fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
   files = loadStrings('assets/filenames.txt');
-  lines = loadStrings('assets/riverrun.chain.txt');
+  // lines = loadStrings('assets/riverrun.chain.txt');
 
-  // httpGet(
-  //   'https://raw.githubusercontent.com/jchwenger/wordhoard/master/IKEA/ikea.txt',
-  //   'text', true, (r) => ik = r
-  // )
 }
 
 function setup() {
@@ -89,24 +86,28 @@ function setup() {
   fileIndex = 0;
 
   reading = false;
+  loading = false;
   dragging = false;
 
   yPosition = 0;
   yVelocity = 0;
-  yFriction = 0.85;
+  yFriction = 0.65;
   previousMouseY = mouseY;
 
   topBoundary = - height - margin + files.length * 30;
   bottomBoundary = 0;
 
-  setupChain(files[fileIndex]);
+  processedFiles = prepareFiles();
+  // console.log(processedFiles);
+
+  loadChain(files[fileIndex]);
 
 }
 
 function draw() {
   background(255);
 
-  if (!reading) {
+  if (!reading && !loading) {
     intro();
   } else {
     chain();
@@ -116,9 +117,13 @@ function draw() {
 // ----------------------------------------
 // chains
 
-function setupChain(filename) {
+function loadChain(filename) {
+  loadStrings(`assets/${filename}`, setupChain);
+}
 
-  lines = lines.filter(l => l.length > 0);
+function setupChain(newLines) {
+
+  lines = newLines.filter(l => l.length > 0);
 
   // find the max charWidth of the current lines
   const widestChar = Array.from(new Set(lines.join("").split("")))
@@ -133,7 +138,9 @@ function setupChain(filename) {
   //   "ws": length of minimum leading white space for each group, "l": group (array) of lines,
   //   "n": n° lines in current group, "np": in previous group, "nn": in next group,
   //   "vp": previous vertical shift, "vn": next,
-  //   "tl": transition left, "tr": transition right, "th": transition half/middle
+  //   transitions (relative): "tl": left, "tr": right, "th": half/middle, "td": (tr - tl)/4
+  //   transitions (absolute):"trL": left, "trR": right, "trH": half/middle
+  //   previous transitions (absolute):"trLp": left, "trRp": right, "trHp": half/middle
   // }
   processedLines = prepareLines();
   // console.log(processedLines);
@@ -154,6 +161,8 @@ function setupChain(filename) {
   alphaMixL = 255;
   alphaMixR = 0;
 
+  console.log(`chain set up`);
+  backToReading();
 }
 
 function intro() {
@@ -195,17 +204,30 @@ function intro() {
   textAlign(LEFT);
   for (let i = 0; i < files.length; i++) {
     fill(0);
-    fname = files[i]
-      .replace('.chain.txt', '')
-      .replace(/[.-]/g, ' ');
-    const t = `${fname}`;
-    text(t, margin, margin + 30 + i * 30);
+    text(processedFiles[i].name, margin, processedFiles[i].yB);
     noFill();
-    rect(margin, margin + 10 + i * 30, textWidth(t) + 5, 30);
-    // TODO: cursor change
-    // cursor('pointer');
-    // cursor('arrow');
+    rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
   }
+
+  // where is the mouse? If inside one of the file rectangles, ready to select
+  fill(0);
+  const mY = mouseY - yPosition;
+  let j;
+  for (let i = 0; i < processedFiles.length; i++) {
+    if (mY > processedFiles[i].yRt && mY < processedFiles[i].yRt + processedFiles[i].yRh) {
+      j = i;
+      break;
+    }
+  }
+  textSize(15);
+  if (j != null && mouseX > margin && mouseX < margin + processedFiles[j].w) {
+    cursor('pointer');
+    // text(`in ${j} | ${mouseY} → ${mY} ${processedFiles[j].fname}`, mouseX, mY);
+  } else {
+    // text(`out | ${mouseY} → ${mY}`, mouseX, mY);
+    cursor('default');
+  }
+
   pop();
 
   // Update previous mouse X position
@@ -382,6 +404,45 @@ function transitions() {
   }
 
   // console.log(`verticalShift: ${verticalShift.toPrecision(6)}`);
+}
+
+
+// ----------------------------------------
+// file processing
+
+function backToReading() {
+  reading = true;
+  console.log(`back to reading`);
+}
+function loadNewFile(i) {
+  fileIndex = i;
+
+  yPosition = 0;
+  yVelocity = 0;
+
+  console.log(`loading ${files[fileIndex]}`);
+  loadChain(files[fileIndex]);
+
+}
+
+function prepareFiles() {
+  push();
+  textSize(25);
+  textAlign(LEFT);
+  const pFiles = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = { 'fname': files[i] };
+    f['name'] = files[i]
+      .replace('.chain.txt', '')
+      .replace(/[.-]/g, ' ');
+    f['w'] = textWidth(f['name']) + 5;
+    f['yB'] = margin + 30 + i * 30; // baseline
+    f['yRt'] = f['yB'] - textAscent(f['name']); // rectangle top
+    f['yRh'] = textAscent(f['name']) + textDescent(f['name']); // height
+    pFiles.push(f);
+  }
+  pop();
+  return pFiles;
 }
 
 // ----------------------------------------
@@ -640,6 +701,27 @@ function helperTransitions(tr, tl, th) {
 
 // ----------------------------------------
 // scrolling mechanism
+
+function mouseClicked() {
+  if (!reading) {
+    // where is the mouse? If inside one of the file rectangles, ready to select
+    const mY = mouseY - yPosition;
+    let j;
+    for (let i = 0; i < processedFiles.length; i++) {
+      if (mY > processedFiles[i].yRt && mY < processedFiles[i].yRt + processedFiles[i].yRh) {
+        j = i;
+        break;
+      }
+    }
+    if (j != null && mouseX > margin && mouseX < margin + processedFiles[j].w) {
+      console.log(`fileIndex: ${fileIndex}, j: ${j}`);
+      loadNewFile(j);
+      cursor('default');
+    } else {
+      // console.log(`no file selected`);
+    }
+  }
+}
 
 function mousePressed() {
   dragging = true;
