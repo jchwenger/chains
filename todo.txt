@@ -2,11 +2,14 @@
 ------
 
 - OK loop logic
-- store current lines in an array (do the slicing job once & calculate the max text width then)
-- loop back with shift space
+- OK store current lines in an array (do the slicing job once & calculate the max text width then)
 - NO font size w.r.t. word length & sketch size
-- ↓ handle case with upper line continuation after the start of the next line
+- OK ↓ handle case with upper line continuation after the start of the next line
 - single font size based on display size, scrolling with stops at transitions!
-- transition animations?
-- interactivity/user input?
+- OK transition animations?
+- OK interactivity/user input?
 - zoom with two touches?
+
+- random choice (& animation?)
+- two languages
+- dedications?
