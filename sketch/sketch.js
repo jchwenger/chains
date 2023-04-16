@@ -364,7 +364,7 @@ function transitions() {
 
   // VERTICAL -----------------------------------------------------------------------
   // shifts using fixed points from previous link
-  if (th >= trL && th <= trH && lineIndex < processedLines.length - 1) {
+  if (th >= trL && th <= trH) {
     verticalShift = map(th, trH, trL, 0, lineHeight * processedLines[lineIndex].n, true);
     // console.log(`moving forward (from the right) | verticalShift: ${verticalShift.toPrecision(6)}`);
   }
