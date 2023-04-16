@@ -5,11 +5,11 @@
 - OK store current lines in an array (do the slicing job once & calculate the max text width then)
 - NO font size w.r.t. word length & sketch size
 - OK ↓ handle case with upper line continuation after the start of the next line
-- single font size based on display size, scrolling with stops at transitions!
 - OK transition animations?
 - OK interactivity/user input?
-- zoom with two touches?
+- NO zoom with two touches?
 
+- single font size based on display size, scrolling with stops at transitions!
 - random choice (& animation?)
 - two languages
 - dedications?
