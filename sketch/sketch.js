@@ -746,7 +746,7 @@ function touchEnded() {
 function keyPressed() {
 
   // space
-  if (key = 32) {
+  if (key === ' ') {
     reading = !reading;
   }
 
