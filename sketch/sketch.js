@@ -155,7 +155,7 @@ function setupChain(newLines, shiftToReading = true) {
   maxTextWidth = (lastGroup[lastGroup.length - 1].length - 1) * charWidth;
 
   // Calculate text width and boundaries
-  leftBoundary = margin;
+  leftBoundary = halfWidth;
   rightBoundary = halfWidth - maxTextWidth;
 
   xPosition = leftBoundary;
@@ -365,9 +365,6 @@ function transitions() {
   const trH = processedLines[lineIndex].trH;
   const trL = processedLines[lineIndex].trL;
   const trR = processedLines[lineIndex].trR;
-  const trHp = processedLines[lineIndex].trHp;
-  const trLp = processedLines[lineIndex].trLp;
-  const trRp = processedLines[lineIndex].trRp;
 
   // helperFrames();
   // helperText(tr, tl, th, trR, trL);
@@ -375,13 +372,13 @@ function transitions() {
 
   // LEFT ---------------------------------------------------------------------------
   // fade: previous link (dis)appears, using fixed points from previous link
-  if (tl <= trHp && tl >= trLp) {
-    alphaMixL = map(tl, trLp, trHp, 0, 255, true);
+  if (tl <= trH && tl >= trL) {
+    alphaMixL = map(tl, trL, trH, 0, 255, true);
     // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
   }
 
   // check
-  if (tl < trLp) {
+  if (tl < trL) {
     alphaMixL = 0;
     // console.log(`left fade check | alphaMixL: ${alphaMixL}`);
   }
@@ -520,16 +517,15 @@ function prepareLines() {
     // CASE: two-lines split: the main line is the basis for cropping
     if (cLine[cLine.length - 1] === "¬") {
       // console.log(`case ¬, line ${cLine}`);
-      // TODO: the + 2 doesn't make sense, most likely a margin issue
       pLines.push({
-        "ws": cLine.search(/\S|$/) + 2,
+        "ws": cLine.search(/\S|$/),
         "l": getCurrentLines(lIndex, 2)
       });
     // CASE: three-lines split: the previous line is the basis for cropping
     } else if (cLine[cLine.length - 1] === "|") {
-      // console.log(`case |, line ${cLine}`);
+      // console.log(`case |, line ${lines[lIndex - 1]}`);
       pLines.push({
-        "ws": cLine.search(/\S|$/) + 2,
+        "ws": lines[lIndex - 1].search(/\S|$/),
         "l": getCurrentLines(lIndex, 3)
       });
     // CASE: all others: : the main line is the basis for cropping
@@ -537,7 +533,7 @@ function prepareLines() {
     } else {
       // console.log(`case other, line ${cLine}`);
       pLines.push({
-        "ws": cLine.search(/\S|$/) + 2,
+        "ws": cLine.search(/\S|$/),
         "l": getCurrentLines(lIndex, 1)
       });
     }
@@ -550,7 +546,7 @@ function prepareLines() {
     // CASE: first
     if (i === 0) {
       pLines[i].tl = 0;
-      pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
+      pLines[i].tr = pLines[i + 1].ws * charWidth;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i].l.length - 1;
       pLines[i].vp = 0;
@@ -558,7 +554,7 @@ function prepareLines() {
     // CASE: last
     } else if (i === pLines.length - 1) {
       pLines[i].tl = pLines[i - 1].tr;
-      pLines[i].tr = (pLines[i].ws + 2) * charWidth;
+      pLines[i].tr = (pLines[i].l[pLines[i].l.length - 1].length - 1) * charWidth; // end of the text
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
@@ -566,24 +562,17 @@ function prepareLines() {
     // CASE: all others
     } else {
       pLines[i].tl = pLines[i - 1].tr;
-      pLines[i].tr = pLines[i + 1].ws * charWidth - margin;
+      pLines[i].tr = pLines[i + 1].ws * charWidth;
       pLines[i].n = pLines[i].l.length - 1;
       pLines[i].np = pLines[i - 1].l.length - 1;
       pLines[i].vp = pLines[i - 1].vn;
       pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
     }
     pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2; // midpoint
-    pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // diff for fades        fixed points:
-    pLines[i].trH = Math.min(halfWidth, margin + pLines[i].th);             // transition: half
-    if (pLines[i].trH < halfWidth && pLines[i].trH + pLines[i].td > halfWidth) {
-      pLines[i].td = halfWidth - pLines[i].trH;
-    }
-    pLines[i].trR = Math.min(pLines[i].trH + pLines[i].td, width - margin); // transition: right
-    pLines[i].trL = Math.max(pLines[i].trH - pLines[i].td, margin);         // transition: left
-    const ii = Math.max(0, i - 1);
-    pLines[i].trHp = pLines[ii].trH; // previous fixed points
-    pLines[i].trLp = pLines[ii].trL;
-    pLines[i].trRp = pLines[ii].trR;
+    pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // diff for fades
+    pLines[i].trH = halfWidth;             // transition: half
+    pLines[i].trR = pLines[i].trH + pLines[i].td; // transition: right
+    pLines[i].trL = pLines[i].trH - pLines[i].td; // transition: left
   }
 
   // console.log("========================================");
@@ -678,33 +667,6 @@ function helperTransitions(tr, tl, th) {
   fill(c);
   text('trL', processedLines[lineIndex].trL + 2, v);
   text('trR', processedLines[lineIndex].trR + 2, v);
-
-  // previous link guides (fixed) ---------------------------------------------------
-  v = 30;
-  // dashes: https://editor.p5js.org/jeffThompson/sketches/pTeiuK7PQ
-  drawingContext.setLineDash([20, 5]);
-
-  // halfWidth: middle, horizontal/vertical
-  const a = 100;
-  c = color(0, a);
-  stroke(c);
-  // line(halfWidth, 0, halfWidth, height); // vertical
-  line(processedLines[lineIndex].trHp, 0, processedLines[lineIndex].trHp, height); // vertical
-  line(0, height/2, width, height/2); // horizontal
-  fill(c);
-  text('trHp', processedLines[lineIndex].trHp + 2, v);
-
-  // trR & trL: mid-transition on each side of halfWidth (purple)
-  c = color(168, 50, 162, a);
-  stroke(c);
-  line(processedLines[lineIndex].trRp, 0, processedLines[lineIndex].trRp, height);
-  line(processedLines[lineIndex].trLp, 0, processedLines[lineIndex].trLp, height);
-  noStroke();
-  fill(c);
-  text('trLp', processedLines[lineIndex].trLp + 2, v);
-  text('trRp', processedLines[lineIndex].trRp + 2, v);
-
-  drawingContext.setLineDash([]); // reset dashes
 
   // link guides (following mouse) --------------------------------------------------
   v = 45;
