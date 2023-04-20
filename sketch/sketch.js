@@ -5,6 +5,7 @@ let halfWidth;
 // -------------
 // https://p5js.org/reference/#/p5/textFont
 let lines;
+let dedication;
 let fontRegular;
 let fontItalic;
 let fontBold;
@@ -129,7 +130,23 @@ function loadChain(filename, shiftToReading = true) {
 
 function setupChain(newLines, shiftToReading = true) {
 
-  lines = newLines.filter(l => l.length > 0);
+  lines = newLines.filter(l => l.length > 0).slice(2); // files contain the chain on one line, then *
+  // console.log(`lines: ${lines}`);
+
+  // search for dedication (last line, preceded by a line with just *
+  dedication = '';
+
+  for (const l of lines) {
+    if (l === '*') {
+      dedication = lines[lines.length-1];
+      // console.log(`found dedication: ${dedication}`);
+      break;
+    }
+  }
+
+  if (dedication) lines = lines.slice(0,lines.length-2); // remove the last two lines
+
+  // console.log(`lines: ${lines}`);
 
   // find the max charWidth of the current lines
   const widestChar = Array.from(new Set(lines.join("").split("")))
@@ -330,10 +347,13 @@ function chain() {
         processedLines[lineIndex + 1].l[i],
         height/2 + i * lineHeight,
         alphaMixR,
-        verticalShift - processedLines[lineIndex].vn // lineHeight * processedLines[lineIndex].n
+        verticalShift - processedLines[lineIndex].vn
       );
     }
   }
+
+  // dedication
+  if (dedication && lineIndex === processedLines.length - 1) writeDedication(dedication, height - margin, width - margin, alphaMixR);
 
   // Update previous mouse X position
   previousMouseX = mouseX;
@@ -348,6 +368,15 @@ function writeLine(l, h, alpha, verticalShift) {
   for (let j = 0; j < l.length; j++) {
     text(l[j], charWidth*j, h - verticalShift);
   }
+  pop();
+}
+
+function writeDedication(l, h, w, alpha) {
+  push();
+  textSize(25);
+  textAlign(RIGHT);
+  fill(0, alpha);
+  text(l, w, h);
   pop();
 }
 
@@ -436,6 +465,9 @@ function transitions() {
     // console.log(`transition backward | verticalShift: ${verticalShift.toPrecision(6)}`);
     // console.log(`transition backward | alphaMixL: ${alphaMixL}, alphaMixR: ${alphaMixR}`);
   }
+
+  // dedication
+  if (lineIndex === processedLines.length - 1 && tr < trR) alphaMixR = 255;
 
   // console.log(`verticalShift: ${verticalShift.toPrecision(6)}`);
 }
