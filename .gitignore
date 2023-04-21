@@ -5,9 +5,5 @@
 # p5, for now
 addons
 
-# assets
-!sketch
-sketch/assets/*.txt
-
 # ctags
 tags
