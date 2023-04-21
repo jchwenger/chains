@@ -12,4 +12,4 @@
 - single font size based on display size, scrolling with stops at transitions!
 - random choice (& animation?)
 - two languages
-- dedications?
+- OK dedications?
