@@ -8,8 +8,11 @@
 - OK transition animations?
 - OK interactivity/user input?
 - NO zoom with two touches?
+- OK two languages
+- OK dedications?
 
 - single font size based on display size, scrolling with stops at transitions!
+- better monospace simulation
 - random choice (& animation?)
-- two languages
-- OK dedications?
+- better transitions (! especially with long links, make sure there is always a window where only the current link is visible)
+- scrolling details for language lists
