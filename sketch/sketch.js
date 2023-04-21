@@ -21,8 +21,9 @@ let reading;
 let fileIndex;
 let processedFiles;
 
-// home button
+// home buttons
 let homeButton;
+let homeLanguages;
 
 // scrolling (reading)
 // -------------------
@@ -62,7 +63,7 @@ function preload() {
   // fontMono = loadFont('assets/fonts/LibertinusMono-Regular.otf');
   // fontItalic = loadFont('assets/fonts/LinBiolinum_RI.otf');
   // fontBold = loadFont('assets/fonts/LinBiolinum_RB.otf');
-  files = loadStrings('assets/filenames.txt');
+  files = loadStrings('assets/filenames.english.txt');
   // lines = loadStrings('assets/riverrun.chain.txt');
 
 }
@@ -97,10 +98,11 @@ function setup() {
   yFriction = 0.65;
   previousMouseY = mouseY;
 
-  topBoundary = - height - margin + files.length * 30;
+  topBoundary = height - margin * 2 - files.length * 30;
   bottomBoundary = 0;
 
   homeButton = prepareHome();
+  homeLanguages = prepareLanguages();
 
   processedFiles = prepareFiles();
   // console.log(processedFiles);
@@ -111,6 +113,7 @@ function setup() {
 
 function draw() {
   background(255);
+  cursor('default');
 
   if (!reading) {
     intro();
@@ -119,13 +122,16 @@ function draw() {
   }
 
   drawHome();
+
+  helperFrames();
 }
 
 // --------------------------------------------------------------------------------
 // chains
 
 function loadChain(filename, shiftToReading = true) {
-  loadStrings(`assets/${filename}`, l => setupChain(l, shiftToReading));
+  const currentSubdir = homeLanguages.f[homeLanguages.c];
+  loadStrings(`assets/chains/${currentSubdir}/${filename}`, l => setupChain(l, shiftToReading));
 }
 
 function setupChain(newLines, shiftToReading = true) {
@@ -152,7 +158,7 @@ function setupChain(newLines, shiftToReading = true) {
   const widestChar = Array.from(new Set(lines.join("").split("")))
     .reduce((char1, char2) => textWidth(char1) > textWidth(char2) ? char1 : char2);
 
-  charZoomFactor = .8;
+  charZoomFactor = 1;
   charWidth = textWidth(widestChar) * charZoomFactor;
 
   lineIndex = 0;
@@ -193,13 +199,28 @@ function prepareHome() {
   textSize(40);
   const t ='Chains';
   const b = {
-    "t": t,
-    "w": textWidth(t),
-    "a": textAscent(t),
-    "d":  textDescent(t),
+    't': t,
+    'w': textWidth(t),
+    'a': textAscent(t),
+    'd':  textDescent(t),
   };
   pop();
   return b;
+}
+
+function prepareLanguages() {
+  let l = {
+    'l': ['english', 'french'],
+    'f': ['chains', 'chaînes'], // subdir name
+    'c': 0 // current language
+  };
+  push();
+  textSize(15);
+  l['w'] = l['l'].map(t => textWidth(t));
+  l['a'] = l['l'].map(t => textAscent(t));
+  l['h'] = l['l'].map(t => textAscent(t) + textDescent(t));
+  pop();
+  return l;
 }
 
 function drawHome() {
@@ -207,17 +228,18 @@ function drawHome() {
   textSize(40);
   textAlign(RIGHT);
   fill(255);
+  // background, in case chain names overlap
+  // stroke(0);
   noStroke();
   rect(width - margin - homeButton.w, margin - homeButton.a, homeButton.w, homeButton.a + homeButton.d);
   fill(0);
+  // Chains title
   text(homeButton.t, width - margin, margin);
+
   // where is the mouse?
-  textSize(15);
-  if (mouseX > width - margin - homeButton.w && mouseX < width - margin && mouseY > margin - homeButton.a && mouseY < margin + homeButton.d) {
-    // text(`in | ${mouseX}, ${mouseY}`, mouseX, mouseY);
+  if (mouseX > width - margin - homeButton.w && mouseX < width - margin && mouseY > margin - homeButton.a && mouseY < margin + homeButton.d) { // chains
     cursor('pointer');
-  } else {
-    // text(`out | ${mouseX}, ${mouseY}`, mouseX, mouseY);
+    // console.log(`pointer chains`);
   }
   pop();
 }
@@ -255,16 +277,17 @@ function intro() {
 
   textSize(25);
   textAlign(LEFT);
+  fill(0);
   for (let i = 0; i < files.length; i++) {
-    fill(0);
     text(processedFiles[i].name, margin, processedFiles[i].yB);
     // noFill();
     // rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
   }
 
-  // where is the mouse? If inside one of the file rectangles, ready to select
+  // where is the mouse?
+  // If inside one of the file rectangles, ready to select
   fill(0);
-  const mY = mouseY - yPosition;
+  const mY = mouseY - yPosition; // allow for shifted Y position with scrolling
   let j;
   for (let i = 0; i < processedFiles.length; i++) {
     if (mY > processedFiles[i].yRt && mY < processedFiles[i].yRt + processedFiles[i].yRh) {
@@ -272,16 +295,45 @@ function intro() {
       break;
     }
   }
+
+  pop();
+
+  // draw languages with a white background
+  push();
+  noStroke();
   textSize(15);
+  textAlign(RIGHT);
+  for (let i = 0; i < homeLanguages.l.length; i++) {
+    push();
+    translate(width - margin, margin + homeButton.d + homeLanguages.h[i] * i);
+    fill(255);
+    // stroke(0);
+    rect(- homeLanguages.w[i], 0, homeLanguages.w[i], homeLanguages.h[i]);
+    noStroke();
+    if (i != homeLanguages.c) {
+      fill(0, 100);
+    } else {
+      fill(0);
+    }
+    text(homeLanguages.l[i], 0, homeLanguages.a[i]);
+    pop();
+  }
+  pop();
+
+  // mouse inside one of the files
   if (j != null && mouseX > margin && mouseX < margin + processedFiles[j].w) {
     cursor('pointer');
     // text(`in ${j} | ${mouseY} → ${mY} ${processedFiles[j].fname}`, mouseX, mY);
-  } else {
-    // text(`out | ${mouseY} → ${mY}`, mouseX, mY);
-    cursor('default');
   }
-
-  pop();
+  // mouse inside one of the languages
+  if (mouseX < width - margin) {
+    for (let i = 0; i < homeLanguages.w.length; i++) {
+      if (mouseX > width - margin - homeLanguages.w[i] && mouseY > margin + homeButton.d + homeLanguages.h[i] * i && mouseY < margin + homeButton.d + homeLanguages.h[i] * (i + 1)) {
+        cursor('pointer');
+        // console.log(`pointer language ${i}`);
+      }
+    }
+  }
 
   // Update previous mouse X position
   previousMouseY = mouseY;
@@ -395,7 +447,6 @@ function transitions() {
   const trL = processedLines[lineIndex].trL;
   const trR = processedLines[lineIndex].trR;
 
-  // helperFrames();
   // helperText(tr, tl, th, trR, trL);
   // helperTransitions(tr, tl, th);
 
@@ -476,6 +527,23 @@ function transitions() {
 // --------------------------------------------------------------------------------
 // file processing
 
+function switchLanguages(i) {
+  homeLanguages.c = i;
+  const cL = homeLanguages.l[i];
+  // console.log(`current language ${cL}`);
+  fileIndex = 0;
+  files = loadStrings(`assets/filenames.${cL}.txt`, finaliseLanguages);
+  // console.log(`done loading new language`);
+}
+
+function finaliseLanguages() {
+  topBoundary = height - margin * 2 - files.length * 30;
+  processedFiles = prepareFiles();
+  // console.log(`finalising language shift`);
+  loadChain(files[fileIndex], false); // load chain but don't shift to reading
+  // console.log(`done language shift`);
+}
+
 function backToReading() {
   reading = true;
   // console.log(`back to reading`);
@@ -483,7 +551,6 @@ function backToReading() {
 function loadNewFile(i) {
   fileIndex = i;
 
-  yPosition = 0;
   yVelocity = 0;
 
   // console.log(`loading ${files[fileIndex]}`);
@@ -735,6 +802,8 @@ function helperTransitions(tr, tl, th) {
 
 function mouseClicked() {
   if (!reading) {
+
+    // file selection
     // where is the mouse? If inside one of the file rectangles, ready to select
     const mY = mouseY - yPosition;
     let j;
@@ -748,10 +817,20 @@ function mouseClicked() {
       // console.log(`fileIndex: ${fileIndex}, j: ${j}`);
       loadNewFile(j);
       cursor('default');
-    } else {
-      // console.log(`no file selected`);
     }
+
+    // language selection
+    if (mouseX < width - margin) {
+      for (let i = 0; i < homeLanguages.w.length; i++) {
+        if (mouseX > width - margin - homeLanguages.w[i] && mouseY > margin + homeButton.d + homeLanguages.h[i] * i && mouseY < margin + homeButton.d + homeLanguages.h[i] * (i + 1)) {
+          if (i != homeLanguages.c) switchLanguages(i);
+          // console.log(`pointer language ${i}`);
+        }
+      }
+    }
+
   } else {
+    // while reading a chain, clicking on the title brings you back to the home page
     if (mouseX > width - margin - homeButton.w && mouseX < width - margin && mouseY > margin - homeButton.a && mouseY < margin + homeButton.d) {
       reading = false;
     }
