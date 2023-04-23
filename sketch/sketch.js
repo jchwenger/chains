@@ -41,6 +41,13 @@ let yPosition;
 let yVelocity;
 let yFriction;
 
+// limits (intro)
+// --------------
+let topBoundary;
+let bottomBoundary;
+let fileNamesSize;
+let introLineHeight;
+
 // limits & transitions
 // --------------------
 let maxTextWidth;
@@ -49,11 +56,6 @@ let rightBoundary;
 let alphaMixL;
 let alphaMixR;
 let verticalShift;
-
-// limits (intro)
-// --------------
-let topBoundary;
-let bottomBoundary;
 
 // --------------------------------------------------------------------------------
 // P5.js functions
@@ -98,8 +100,13 @@ function setup() {
   yFriction = 0.65;
   previousMouseY = mouseY;
 
-  topBoundary = height - margin * 2 - files.length * 30;
+  push();
+  fileNamesSize = 25;
+  textSize(fileNamesSize);
+  introLineHeight = textAscent() + textDescent();
+  topBoundary = height - margin * 2 - (files.length - 1) * introLineHeight;
   bottomBoundary = 0;
+  pop();
 
   homeButton = prepareHome();
   homeLanguages = prepareLanguages();
@@ -275,7 +282,7 @@ function intro() {
 
   translate(0, yPosition);
 
-  textSize(25);
+  textSize(fileNamesSize);
   textAlign(LEFT);
   fill(0);
   for (let i = 0; i < files.length; i++) {
@@ -410,6 +417,13 @@ function chain() {
   // Update previous mouse X position
   previousMouseX = mouseX;
 
+  // chain title
+  push();
+  textAlign(LEFT);
+  textSize(fileNamesSize);
+  text(processedFiles[fileIndex].name, margin, margin);
+  pop();
+
 }
 
 function writeLine(l, h, alpha, verticalShift) {
@@ -425,7 +439,7 @@ function writeLine(l, h, alpha, verticalShift) {
 
 function writeDedication(l, h, w, alpha) {
   push();
-  textSize(25);
+  textSize(fileNamesSize);
   textAlign(RIGHT);
   fill(0, alpha);
   text(l, w, h);
@@ -539,7 +553,7 @@ function switchLanguages(i) {
 }
 
 function finaliseLanguages() {
-  topBoundary = height - margin * 2 - files.length * 30;
+  topBoundary = height - margin * 2 - (files.length - 1) * introLineHeight;
   processedFiles = prepareFiles();
   // console.log(`finalising language shift`);
   loadChain(files[fileIndex], false); // load chain but don't shift to reading
@@ -562,7 +576,7 @@ function loadNewFile(i) {
 
 function prepareFiles() {
   push();
-  textSize(25);
+  textSize(fileNamesSize);
   textAlign(LEFT);
   const pFiles = [];
   for (let i = 0; i < files.length; i++) {
@@ -571,7 +585,7 @@ function prepareFiles() {
       .replace('.chain.txt', '')
       .replace(/[.-]/g, ' ');
     f['w'] = textWidth(f['name']) + 5;
-    f['yB'] = margin + 30 + i * 30; // baseline
+    f['yB'] = margin + i * introLineHeight; // baseline
     f['yRt'] = f['yB'] - textAscent(f['name']); // rectangle top
     f['yRh'] = textAscent(f['name']) + textDescent(f['name']); // height
     pFiles.push(f);
