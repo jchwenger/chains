@@ -345,6 +345,18 @@ function intro() {
   // Update previous mouse X position
   previousMouseY = mouseY;
 
+  // shading effect top & bottom
+  push();
+  noStroke();
+  const w = margin;
+  const sigWidth = 5;
+  for (let i = 0; i < w; i++) {
+    fill(255, map(sigmoid(map(i, 0, w, -sigWidth, sigWidth)), 0, 1, 255, 0));
+    rect(0, i, width, 1); // top
+    rect(0, height - i, width, 1); // bottom
+  }
+  pop();
+
 }
 
 function chain() {
@@ -444,6 +456,10 @@ function writeDedication(l, h, w, alpha) {
   fill(0, alpha);
   text(l, w, h);
   pop();
+}
+
+function sigmoid(t) {
+  return 1 / (1 + Math.exp(-t));
 }
 
 // --------------------------------------------------------------------------------
