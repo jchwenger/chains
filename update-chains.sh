@@ -20,6 +20,8 @@ echo "Your answer: $answer"
 if [[ "${answer,,}" =~ ^y*$  ]]
 then
   git add "sketch/assets/chains"
+  git add "sketch/assets/filenames.english.txt"
+  git add "sketch/assets/filenames.french.txt"
   git status
   echo "----------------------------------------"
   echo "Everything ok? [Y/n] "
@@ -29,6 +31,8 @@ then
     git commit -m "chains | submodule updated"
   else
     git restore --staged "sketch/assets/chains"
+    git restore --staged "sketch/assets/filenames.english.txt"
+    git restore --staged "sketch/assets/filenames.french.txt"
     echo "---------"
     echo "Aborting update."
     git status
