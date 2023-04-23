@@ -444,34 +444,36 @@ function transitions() {
   const tr = xPosition + processedLines[lineIndex].tr;
   const th = xPosition + processedLines[lineIndex].th;
   const trH = processedLines[lineIndex].trH;
-  const trL = processedLines[lineIndex].trL;
+  const trRR = processedLines[lineIndex].trRR;
   const trR = processedLines[lineIndex].trR;
+  const trL = processedLines[lineIndex].trL;
+  const trLL = processedLines[lineIndex].trLL;
 
   // helperText(tr, tl, th, trR, trL);
   // helperTransitions(tr, tl, th);
 
   // LEFT ---------------------------------------------------------------------------
   // fade: previous link (dis)appears, using fixed points from previous link
-  if (tl <= trH && tl >= trL) {
-    alphaMixL = map(tl, trL, trH, 0, 255, true);
+  if (tl <= trL && tl >= trLL) {
+    alphaMixL = map(tl, trLL, trL, 0, 255, true);
     // console.log(`left fade | alphaMixL: ${alphaMixL.toPrecision(6)}`);
   }
 
   // check
-  if (tl < trL) {
+  if (tl < trLL) {
     alphaMixL = 0;
     // console.log(`left fade check | alphaMixL: ${alphaMixL}`);
   }
 
   // RIGHT --------------------------------------------------------------------------
   // fade: next link (dis)appears
-  if (th >= trL && th <= trH) {
-    alphaMixR = map(th, trH, trL, 0, 255, true);
+  if (tr <= trRR && tr >= trR) {
+    alphaMixR = map(tr, trRR, trR, 0, 255, true);
     // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
   }
 
   // check
-  if (th > trH) {
+  if (tr > trRR) {
     alphaMixR = 0;
     // console.log(`right fade check | alphaMixR: ${alphaMixR}`);
   }
@@ -670,8 +672,10 @@ function prepareLines() {
     pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2; // midpoint
     pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // diff for fades
     pLines[i].trH = halfWidth;             // transition: half
-    pLines[i].trR = pLines[i].trH + pLines[i].td; // transition: right
-    pLines[i].trL = pLines[i].trH - pLines[i].td; // transition: left
+    pLines[i].trRR = pLines[i].trH + pLines[i].td; // transition right: right
+    pLines[i].trR = pLines[i].trH; // transition right: left
+    pLines[i].trL = pLines[i].trH - pLines[i].td; // transition left: right
+    pLines[i].trLL = pLines[i].trH - 2 * pLines[i].td; // transition left: left
   }
 
   // console.log("========================================");
@@ -758,14 +762,22 @@ function helperTransitions(tr, tl, th) {
   text('trH', processedLines[lineIndex].trH + 2, v);
 
   // trR & trL: mid-transition on each side of halfWidth (purple)
-  c = color(168, 50, 162);
-  stroke(c);
-  line(processedLines[lineIndex].trR, 0, processedLines[lineIndex].trR, height);
-  line(processedLines[lineIndex].trL, 0, processedLines[lineIndex].trL, height);
+  v = 30;
+  c = color(168, 50, 162, 50);
+  // stroke(c);
   noStroke();
   fill(c);
-  text('trL', processedLines[lineIndex].trL + 2, v);
+  rect(processedLines[lineIndex].trR, 0, processedLines[lineIndex].td, height); // rectangle right
+  rect(processedLines[lineIndex].trLL, 0, processedLines[lineIndex].td, height); // rectangle left
+  // line(processedLines[lineIndex].trR, 0, processedLines[lineIndex].trR, height);
+  // line(processedLines[lineIndex].trL, 0, processedLines[lineIndex].trL, height);
+  // noStroke();
+  c = color(168, 50, 162);
+  fill(c);
   text('trR', processedLines[lineIndex].trR + 2, v);
+  text('trRR', processedLines[lineIndex].trRR + 2, v);
+  text('trL', processedLines[lineIndex].trL + 2, v);
+  text('trLL', processedLines[lineIndex].trLL + 2, v);
 
   // link guides (following mouse) --------------------------------------------------
   v = 45;
