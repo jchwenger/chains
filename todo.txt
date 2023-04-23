@@ -16,3 +16,4 @@
 - random choice (& animation?)
 - better transitions (! especially with long links, make sure there is always a window where only the current link is visible)
 - scrolling details for language lists
+- title when reading
