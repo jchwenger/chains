@@ -73,6 +73,7 @@ function preload() {
 function setup() {
 
   canvasSize = 700;
+  // createCanvas(screen.availWidth, screen.availHeight);
   createCanvas(canvasSize, canvasSize * .8);
 
   halfWidth = width/2;
@@ -85,7 +86,7 @@ function setup() {
   textFont(fontRegular);
   textAlign(CENTER);
   currentTextSize = canvasSize/15;
-  textSize(currentTextSize);
+  textSize(35);
 
   // remove last empty line if there is one
   files = files.filter(l => l.length > 0);
@@ -130,7 +131,17 @@ function draw() {
 
   drawHome();
 
-  helperFrames();
+  // helperFrames();
+
+  // // console.log(` screen.availHeight: ${screen.availHeight}, screen.availWidth: ${screen.availWidth}`);
+  // if(screen.availHeight < screen.availWidth){
+  //   push();
+  //   fill(0);
+  //   textAlign(RIGHT);
+  //   text("Please use Landscape!", width - margin, height - margin);
+  //   pop();
+  // }
+
 }
 
 // --------------------------------------------------------------------------------
@@ -480,7 +491,7 @@ function transitions() {
   const trLL = processedLines[lineIndex].trLL;
 
   // helperText(tr, tl, th, trR, trL);
-  // helperTransitions(tr, tl, th);
+  helperTransitions(tr, tl, th);
 
   // LEFT ---------------------------------------------------------------------------
   // fade: previous link (dis)appears, using fixed points from previous link
@@ -599,7 +610,8 @@ function prepareFiles() {
     const f = { 'fname': files[i] };
     f['name'] = files[i]
       .replace('.chain.txt', '')
-      .replace(/[.-]/g, ' ');
+      .replace(/[.-]/g, ' ')
+      .replace('_', "'");
     f['w'] = textWidth(f['name']) + 5;
     f['yB'] = margin + i * introLineHeight; // baseline
     f['yRt'] = f['yB'] - textAscent(f['name']); // rectangle top
