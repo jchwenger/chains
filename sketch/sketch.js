@@ -85,14 +85,13 @@ const sketch = (p) => {
     halfWidth = p.width/2;
     margin = 50;
 
-    // TODO: better way of calculating lineHeight?
-    lineHeight = canvasSize/25;
-
     p.fill(0)
     p.textFont(fontRegular);
     p.textAlign(p.CENTER);
     currentTextSize = canvasSize/15;
     p.textSize(35);
+
+    lineHeight = p.textAscent() + p.textDescent();
 
     // remove last empty line if there is one
     files = files.filter(l => l.length > 0);
