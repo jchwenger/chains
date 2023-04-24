@@ -15,11 +15,10 @@ const sketch = (p) => {
   let fontRegular;
   let fontItalic;
   let fontBold;
-  let lineHeight
+  let lineHeight;
+  let chainHeight;
   let lineIndex;
-  let currentTextSize;
   let charWidth;
-  let charZoomFactor;
   let processedLines;
 
   // intro
@@ -52,6 +51,7 @@ const sketch = (p) => {
   let topBoundary;
   let bottomBoundary;
   let fileNamesSize;
+  let languageNamesSize;
   let introLineHeight;
 
   // limits & transitions
@@ -72,8 +72,10 @@ const sketch = (p) => {
     // fontMono = p.loadFont('assets/fonts/LibertinusMono-Regular.otf');
     // fontBold = p.loadFont('assets/fonts/LinBiolinum_RB.otf');
     files = p.loadStrings('assets/filenames.english.txt');
-    // lines = p.loadStrings('assets/riverrun.chain.txt');
 
+    fsIcon = p.loadImage('assets/icons/Ic_fullscreen_36px.svg'); // https://upload.wikimedia.org/wikipedia/commons/a/a5/Ic_fullscreen_36px.svg
+    fsExitIcon = p.loadImage('assets/icons/Ic_fullscreen_exit_36px.svg'); // https://upload.wikimedia.org/wikipedia/commons/8/83/Ic_fullscreen_exit_36px.svg
+    p.fsI = fsIcon;
   }
 
   p.setup = () => {
@@ -81,21 +83,21 @@ const sketch = (p) => {
     canvasSize = 700;
     // https://dev.to/timhuang/a-simple-way-to-detect-if-browser-is-on-a-mobile-device-with-javascript-44j3
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      p.createCanvas(screen.availWidth - 5, screen.availHeight - 5);
+      p.createCanvas(screen.availWidth - 80, screen.availHeight - 80);
     } else {
       p.createCanvas(canvasSize, canvasSize * .8);
     }
 
     halfWidth = p.width/2;
-    margin = 50;
+    margin = 40;
+    chainHeight = margin + (p.height - margin) / 2;
 
     p.fill(0)
     p.textFont(fontRegular);
     p.textAlign(p.CENTER);
-    currentTextSize = canvasSize/15;
-    p.textSize(35);
+    p.textSize(30);
 
-    lineHeight = p.textAscent() + p.textDescent();
+    lineHeight = canvasSize/25;
 
     // remove last empty line if there is one
     files = files.filter(l => l.length > 0);
@@ -110,11 +112,13 @@ const sketch = (p) => {
     yFriction = 0.65;
     previousMouseY = p.mouseY;
 
-    p.push();
     fileNamesSize = 25;
+    languageNamesSize = 20;
+
+    p.push();
     p.textSize(fileNamesSize);
     introLineHeight = p.textAscent() + p.textDescent();
-    topBoundary = p.height - margin * 2 - (files.length - 1) * introLineHeight;
+    topBoundary = p.height - margin * 2 - files.length * introLineHeight;
     bottomBoundary = 0;
     p.pop();
 
@@ -176,8 +180,7 @@ const sketch = (p) => {
     const widestChar = Array.from(new Set(lines.join("").split("")))
       .reduce((char1, char2) => p.textWidth(char1) > p.textWidth(char2) ? char1 : char2);
 
-    charZoomFactor = 1;
-    charWidth = p.textWidth(widestChar) * charZoomFactor;
+    charWidth = p.textWidth(widestChar);
 
     lineIndex = 0;
     // processedLines is an array of objects:
@@ -233,7 +236,7 @@ const sketch = (p) => {
       'c': 0 // current language
     };
     p.push();
-    p.textSize(15);
+    p.textSize(languageNamesSize);
     l['w'] = l['l'].map(t => p.textWidth(t));
     l['a'] = l['l'].map(t => p.textAscent(t));
     l['h'] = l['l'].map(t => p.textAscent(t) + p.textDescent(t));
@@ -246,13 +249,27 @@ const sketch = (p) => {
     p.textSize(40);
     p.textAlign(p.RIGHT);
     p.fill(255);
+
     // background, in case chain names overlap
     // p.stroke(0);
     p.noStroke();
     p.rect(p.width - margin - homeButton.w, margin - homeButton.a, homeButton.w, homeButton.a + homeButton.d);
     p.fill(0);
+
     // Chains title
     p.text(homeButton.t, p.width - margin, margin);
+
+    // fullscreen icon
+    let img;
+    if (p.fullscreen()) {
+      console.log(`fsc exit icon`);
+      img = fsExitIcon;
+    } else {
+      console.log(`fsc icon`);
+      img = fsIcon;
+    }
+    // p.image(img, margin - img.width, p.height - margin, margin, p.height - margin + img.height);
+    p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
 
     // where is the mouse?
     if (p.mouseX > p.width - margin - homeButton.w && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
@@ -319,7 +336,7 @@ const sketch = (p) => {
     // draw languages with a white background
     p.push();
     p.noStroke();
-    p.textSize(15);
+    p.textSize(languageNamesSize);
     p.textAlign(p.RIGHT);
     for (let i = 0; i < homeLanguages.l.length; i++) {
       p.push();
@@ -405,7 +422,7 @@ const sketch = (p) => {
       for (let i = 0; i < processedLines[lineIndex - 1].l.length; i++) {
         p.writeLine(
           processedLines[lineIndex - 1].l[i],
-          p.height/2 + i * lineHeight,
+          chainHeight + i * lineHeight,
           alphaMixL,
           verticalShift + processedLines[lineIndex].vp // lineHeight * (processedLines[lineIndex - 1].l.length - 1)
         );
@@ -416,7 +433,7 @@ const sketch = (p) => {
     for (let i = 0; i < processedLines[lineIndex].l.length; i++) {
       p.writeLine(
         processedLines[lineIndex].l[i],
-        p.height/2 + i * lineHeight,
+        chainHeight + i * lineHeight,
         255,
         verticalShift
       );
@@ -427,7 +444,7 @@ const sketch = (p) => {
       for (let i = 0; i < processedLines[lineIndex + 1].l.length; i++) {
         p.writeLine(
           processedLines[lineIndex + 1].l[i],
-          p.height/2 + i * lineHeight,
+          chainHeight + i * lineHeight,
           alphaMixR,
           verticalShift - processedLines[lineIndex].vn
         );
@@ -575,6 +592,7 @@ const sketch = (p) => {
     homeLanguages.c = i;
     const cL = homeLanguages.l[i];
     // console.log(`current language ${cL}`);
+    yPosition = 0;
     fileIndex = 0;
     files = p.loadStrings(`assets/filenames.${cL}.txt`, p.finaliseLanguages);
     // console.log(`done loading new language`);
@@ -614,7 +632,7 @@ const sketch = (p) => {
         .replace(/[.-]/g, ' ')
         .replace('_', "'");
       f['w'] = p.textWidth(f['name']) + 5;
-      f['yB'] = margin + i * introLineHeight; // baseline
+      f['yB'] = margin + (i + 1) * introLineHeight; // baseline
       f['yRt'] = f['yB'] - p.textAscent(f['name']); // rectangle top
       f['yRh'] = p.textAscent(f['name']) + p.textDescent(f['name']); // height
       pFiles.push(f);
@@ -800,7 +818,7 @@ const sketch = (p) => {
     p.stroke(c);
     // p.line(halfWidth, 0, halfWidth, p.height); // vertical
     p.line(processedLines[lineIndex].trH, 0, processedLines[lineIndex].trH, p.height); // vertical
-    p.line(0, p.height/2, p.width, p.height/2); // horizontal
+    p.line(0, chainHeight, p.width, chainHeight); // horizontal
     p.fill(c);
     p.text('trH', processedLines[lineIndex].trH + 2, v);
 
@@ -856,6 +874,7 @@ const sketch = (p) => {
   // scrolling mechanism
 
   p.mouseClicked = () => {
+
     if (!reading) {
 
       // file selection
@@ -890,6 +909,13 @@ const sketch = (p) => {
         reading = false;
       }
     }
+
+    // full screen icons (both icons have the same size)...
+    if (p.mouseX > margin - fsIcon.width && p.mouseX < margin && p.mouseY > p.height - margin && p.mouseY < p.height - margin + fsIcon.height) {
+      let fs = p.fullscreen();
+      p.fullscreen(!fs);
+    }
+
   }
 
   p.mousePressed = () => {
@@ -926,6 +952,7 @@ const sketch = (p) => {
     }
 
   }
+
 }
 
 let alertShown = false; // Flag to track if the alert has been shown
