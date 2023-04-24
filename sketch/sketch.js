@@ -64,8 +64,8 @@ const sketch = (p) => {
 
   p.preload = () => {
     fontRegular = p.loadFont('assets/fonts/LinBiolinum_R.otf');
+    fontItalic = p.loadFont('assets/fonts/LinBiolinum_RI.otf');
     // fontMono = p.loadFont('assets/fonts/LibertinusMono-Regular.otf');
-    // fontItalic = p.loadFont('assets/fonts/LinBiolinum_RI.otf');
     // fontBold = p.loadFont('assets/fonts/LinBiolinum_RB.otf');
     files = p.loadStrings('assets/filenames.english.txt');
     // lines = p.loadStrings('assets/riverrun.chain.txt');
@@ -438,6 +438,7 @@ const sketch = (p) => {
 
     // chain title
     p.push();
+    p.textFont(fontItalic);
     p.textAlign(p.LEFT);
     p.textSize(fileNamesSize);
     p.text(processedFiles[fileIndex].name, margin, margin);
