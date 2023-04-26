@@ -218,7 +218,7 @@ const sketch = (p) => {
   p.prepareHome = () => {
     p.push();
     p.textSize(40);
-    const t ='Chains';
+    const t = ['Chains', 'Chaînes'];
     const b = {
       't': t,
       'w': p.textWidth(t),
@@ -257,7 +257,7 @@ const sketch = (p) => {
     p.fill(0);
 
     // Chains title
-    p.text(homeButton.t, p.width - margin, margin);
+    p.text(homeButton.t[homeLanguages.c], p.width - margin, margin);
 
     // fullscreen icon
     let img;
