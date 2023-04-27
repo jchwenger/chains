@@ -2,6 +2,50 @@
 // Chains, Jérêmie Wenger, London, 2023
 // --------------------------------------------------------------------------------
 
+const alertSketch = (p) => {
+
+  let margin;
+  let fontRegular;
+  let lineHeight;
+
+  p.preload = () => {
+    fontRegular = p.loadFont('assets/fonts/LinBiolinum_R.otf');
+  }
+
+  p.setup = () => {
+    canvasSize = 700;
+    // https://dev.to/timhuang/a-simple-way-to-detect-if-browser-is-on-a-mobile-device-with-javascript-44j3
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+      p.createCanvas(screen.availWidth - 80, screen.availHeight - 80);
+    } else {
+      p.createCanvas(screen.availWidth * 0.7, 400);
+    }
+
+    margin = 40;
+    lineHeight = canvasSize/25;
+
+    p.fill(0)
+    p.textFont(fontRegular);
+  }
+
+  p.draw = () => {
+    p.background(255);
+
+    p.textAlign(p.RIGHT);
+    p.textSize(40);
+    p.text("Chains", p.width - margin, margin * 2);
+
+    p.textAlign(p.LEFT);
+    p.textSize(30);
+    const txt = 'Please rotate your device...'.split(' ');
+    for (let i = txt.length; i >= 0; i--) {
+      p.text(txt[txt.length - 1 - i], margin, p.height - margin - i * lineHeight);
+    }
+
+  }
+
+}
+
 const sketch = (p) => {
 
   let margin;
@@ -958,6 +1002,11 @@ const sketch = (p) => {
 let alertShown = false; // Flag to track if the alert has been shown
 let sketchInstance = null; // Variable to store the p5.js sketch instance
 
+function createAlertSketch() {
+  // Create a new p5.js sketch instance
+  sketchInstance = new p5(alertSketch);
+}
+
 function createSketch() {
   // Create a new p5.js sketch instance
   sketchInstance = new p5(sketch);
@@ -966,6 +1015,7 @@ function createSketch() {
 function removeSketch() {
   // Remove the p5.js sketch instance
   if (sketchInstance) {
+    // console.log(`found instance, removing first...`);
     sketchInstance.remove();
     sketchInstance = null;
   }
@@ -978,12 +1028,17 @@ function checkWindowOrientation() {
     removeSketch();
     // Alert the user to rotate their device (only once)
     if (!alertShown) {
-      alert('Please rotate your device to horizontal orientation.');
+      // alert('Please rotate your device to horizontal orientation.');
+      createAlertSketch();
       alertShown = true; // Update the flag to indicate the alert has been shown
     }
   } else {
+    // console.log(`orientation horizontal, creating sketch`);
     // Create the sketch if it was not previously created
     if (!sketchInstance) {
+      createSketch();
+    } else {
+      removeSketch();
       createSketch();
     }
   }
