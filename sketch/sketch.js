@@ -151,7 +151,7 @@ const sketch = (p) => {
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
       p.createCanvas(screen.availWidth - 80, screen.availHeight - 80);
     } else {
-      p.createCanvas(canvasSize, canvasSize * .8);
+      p.createCanvas(screen.availWidth * 0.7, 400);
     }
 
     halfWidth = p.width/2;
@@ -328,10 +328,10 @@ const sketch = (p) => {
     // fullscreen icon
     let img;
     if (p.fullscreen()) {
-      console.log(`fsc exit icon`);
+      // console.log(`fsc exit icon`);
       img = fsExitIcon;
     } else {
-      console.log(`fsc icon`);
+      // console.log(`fsc icon`);
       img = fsIcon;
     }
     // p.image(img, margin - img.width, p.height - margin, margin, p.height - margin + img.height);
@@ -439,17 +439,7 @@ const sketch = (p) => {
     // Update previous mouse X position
     previousMouseY = p.mouseY;
 
-    // shading effect top & bottom
-    p.push();
-    p.noStroke();
-    const w = margin;
-    const sigWidth = 5;
-    for (let i = 0; i < w; i++) {
-      p.fill(255, p.map(p.sigmoid(p.map(i, 0, w, -sigWidth, sigWidth)), 0, 1, 255, 0));
-      p.rect(0, i, p.width, 1); // top
-      p.rect(0, p.height - i, p.width, 1); // bottom
-    }
-    p.pop();
+    p.shadingHorizontal();
 
   }
 
@@ -531,6 +521,8 @@ const sketch = (p) => {
     p.text(processedFiles[fileIndex].name, margin, margin);
     p.pop();
 
+    p.shadingVertical();
+
   }
 
   p.writeLine = (l, h, alpha, verticalShift) => {
@@ -550,6 +542,34 @@ const sketch = (p) => {
     p.textAlign(p.RIGHT);
     p.fill(0, alpha);
     p.text(l, w, h);
+    p.pop();
+  }
+
+  p.shadingHorizontal = () => {
+    // shading effect top & bottom
+    p.push();
+    p.noStroke();
+    const w = margin;
+    const sigWidth = 5;
+    for (let i = 0; i < w; i++) {
+      p.fill(255, p.map(p.sigmoid(p.map(i, 0, w, -sigWidth, sigWidth)), 0, 1, 255, 0));
+      p.rect(0, i, p.width, 1); // top
+      p.rect(0, p.height - i, p.width, 1); // bottom
+    }
+    p.pop();
+  }
+
+  p.shadingVertical = () => {
+    // shading effect left & right
+    p.push();
+    p.noStroke();
+    const w = margin;
+    const sigWidth = 5;
+    for (let i = 0; i < w; i++) {
+      p.fill(255, p.map(p.sigmoid(p.map(i, 0, w, -sigWidth, sigWidth)), 0, 1, 255, 0));
+      p.rect(i, 0, 1, p.height); // left
+      p.rect(p.width - i, 0, 1, p.height); // right
+    }
     p.pop();
   }
 
@@ -594,7 +614,7 @@ const sketch = (p) => {
     // fade: next link (dis)appears
     if (tr <= trRR && tr >= trR) {
       alphaMixR = p.map(tr, trRR, trR, 0, 255, true);
-      // console.log(`right fade | verticalShift: ${verticalShift.toPrecision(6)}`);
+      // console.log(`right fade | alphaMixR: ${alphaMixR}`);
     }
 
     // check
