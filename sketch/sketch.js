@@ -508,7 +508,10 @@ const sketch = (p) => {
     }
 
     // dedication
-    if (dedication && lineIndex === processedLines.length - 1) p.writeDedication(dedication, p.height - margin, p.width - margin, alphaMixR);
+    if (dedication && lineIndex === processedLines.length - 1) {
+      p.writeDedication(dedication, p.height - margin, p.width - margin, alphaMixR);
+      // console.log(`writing dedication, alphaMixR: ${alphaMixR}`);
+    }
 
     // Update previous mouse X position
     previousMouseX = p.mouseX;
@@ -665,7 +668,10 @@ const sketch = (p) => {
     }
 
     // dedication
-    if (lineIndex === processedLines.length - 1 && tr < trR) alphaMixR = 255;
+    if (lineIndex === processedLines.length - 1 && tr < trR) {
+      alphaMixR = 0;
+      // console.log(`transition dedication: alphaMixR: ${alphaMixR}`);
+    }
 
     // console.log(`verticalShift: ${verticalShift.toPrecision(6)}`);
   }
