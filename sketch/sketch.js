@@ -16,7 +16,7 @@ const alertSketch = (p) => {
     canvasSize = 700;
     // https://dev.to/timhuang/a-simple-way-to-detect-if-browser-is-on-a-mobile-device-with-javascript-44j3
     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      p.createCanvas(screen.availWidth - 80, screen.availHeight - 80);
+      p.createCanvas(screen.availWidth - 40, screen.availHeight - 160);
     } else {
       p.createCanvas(screen.availWidth * 0.7, 400);
     }
@@ -33,7 +33,7 @@ const alertSketch = (p) => {
 
     p.textAlign(p.RIGHT);
     p.textSize(40);
-    p.text("Chains", p.width - margin, margin * 2);
+    p.text("Chains", p.width - margin, margin);
 
     p.textAlign(p.LEFT);
     p.textSize(30);
@@ -41,6 +41,28 @@ const alertSketch = (p) => {
     for (let i = txt.length; i >= 0; i--) {
       p.text(txt[txt.length - 1 - i], margin, p.height - margin - i * lineHeight);
     }
+
+    // p.helperFrames();
+
+  }
+
+  p.helperFrames = () => {
+
+    // canvas frame
+    p.push();
+    p.noFill();
+    p.stroke(255,0,0);
+    p.strokeWeight(2);
+    p.rect(1,1, p.width - 2, p.height - 2, 5);
+    p.pop();
+
+    // margin frame
+    p.push();
+    p.noFill();
+    p.stroke(0,0,255);
+    p.strokeWeight(1);
+    p.rect(margin, margin, p.width - 2 * margin, p.height - 2 * margin);
+    p.pop();
 
   }
 
