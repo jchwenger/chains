@@ -2,6 +2,7 @@
 
 html, body {
   height: 100%;
+  -webkit-tap-highlight-color: transparent; /* disable blue highlight on tap, https://stackoverflow.com/a/30319808 */
 }
 
 body {
