@@ -1041,7 +1041,6 @@ const sketch = (p) => {
 
 }
 
-let alertShown = false; // Flag to track if the alert has been shown
 let sketchInstance = null; // Variable to store the p5.js sketch instance
 
 function createAlertSketch() {
@@ -1068,12 +1067,8 @@ function checkWindowOrientation() {
   if (window.innerHeight > window.innerWidth) {
     // Remove the sketch if it was previously created
     removeSketch();
-    // Alert the user to rotate their device (only once)
-    if (!alertShown) {
-      // alert('Please rotate your device to horizontal orientation.');
-      createAlertSketch();
-      alertShown = true; // Update the flag to indicate the alert has been shown
-    }
+    // alert('Please rotate your device to horizontal orientation.');
+    createAlertSketch();
   } else {
     // console.log(`orientation horizontal, creating sketch`);
     // Create the sketch if it was not previously created
