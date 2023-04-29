@@ -1087,6 +1087,25 @@ function checkWindowOrientation() {
   }
 }
 
+// https://stackoverflow.com/a/4770179
+// modern Chrome requires { passive: false } when adding event
+let supportsPassive = false;
+try {
+  window.addEventListener("test", null,
+    Object.defineProperty({}, 'passive', {
+      get: () => {
+        supportsPassive = true;
+      }
+    })
+  );
+} catch(e) {}
+
+window.addEventListener(
+'touchmove',
+  (e) => e.preventDefault(),
+  supportsPassive ? { passive: false } : false
+);
+
 // Call the function to check the initial window orientation
 checkWindowOrientation();
 
