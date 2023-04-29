@@ -287,9 +287,9 @@ const sketch = (p) => {
     const t = ['Chains', 'Chaînes'];
     const b = {
       't': t,
-      'w': p.textWidth(t),
-      'a': p.textAscent(t),
-      'd':  p.textDescent(t),
+      'w': t.map(tt => p.textWidth(tt)),
+      'a': p.textAscent(t[0]),
+      'd':  p.textDescent(t[0]),
     };
     p.pop();
     return b;
@@ -319,7 +319,7 @@ const sketch = (p) => {
     // background, in case chain names overlap
     // p.stroke(0);
     p.noStroke();
-    p.rect(p.width - margin - homeButton.w, margin - homeButton.a, homeButton.w, homeButton.a + homeButton.d);
+    p.rect(p.width - margin - homeButton.w[homeLanguages.c], margin - homeButton.a, homeButton.w[homeLanguages.c], homeButton.a + homeButton.d);
     p.fill(0);
 
     // Chains title
@@ -338,7 +338,7 @@ const sketch = (p) => {
     p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
 
     // where is the mouse?
-    if (p.mouseX > p.width - margin - homeButton.w && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
+    if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
       p.cursor('pointer');
       // console.log(`pointer chains`);
     }
@@ -991,7 +991,7 @@ const sketch = (p) => {
 
     } else {
       // while reading a chain, clicking on the title brings you back to the home page
-      if (p.mouseX > p.width - margin - homeButton.w && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
+      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
         reading = false;
       }
     }
