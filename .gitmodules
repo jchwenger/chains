@@ -1,3 +1,3 @@
 [submodule "sketch/assets/chains"]
-	path = sketch/assets/chains.writing
+	path = assets/chains.writing
 	url = https://github.com/jchwenger/chains.writing
