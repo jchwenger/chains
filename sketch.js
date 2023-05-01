@@ -242,7 +242,7 @@ const chainsSketch = (p) => {
 
   p.loadChain = (filename, shiftToReading = true) => {
     const currentSubdir = homeLanguages.f[homeLanguages.c];
-    p.loadStrings(`assets/chains/${currentSubdir}/${filename}`, l => p.setupChain(l, shiftToReading));
+    p.loadStrings(`assets/chains.writing/${currentSubdir}/${filename}`, l => p.setupChain(l, shiftToReading));
   }
 
   p.setupChain = (newLines, shiftToReading = true) => {
