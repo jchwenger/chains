@@ -652,18 +652,22 @@ const chainsSketch = (p) => {
     }
 
     // VERTICAL -----------------------------------------------------------------------
+    // the actual shifting: 0 means 'first line horizontally in the middle'
+    //                      verticalShift is how much we need to shift upwards (left link) or downards (right)
     // shifts using fixed points from previous link
     if (th >= trL && th <= trH) {
-      verticalShift = p.map(th, trH, trL, 0, lineHeight * processedLines[lineIndex].n, true);
+      verticalShift = p.map(th, trH, trL, 0, processedLines[lineIndex].vn, true);
       // console.log(`moving forward (from the right) | verticalShift: ${verticalShift.toPrecision(6)}`);
     }
 
-    // check
+    // checks
+    // after the shift
     if (th < trL) {
-      verticalShift = lineHeight * processedLines[lineIndex].n;
+      verticalShift = processedLines[lineIndex].vn;
       // console.log(`vertical check 1 | verticalShift: ${verticalShift.toPrecision(6)}`);
     }
 
+    // before the shift
     if (th > trH) {
       verticalShift = 0;
       // console.log(`vertical check 2 | verticalShift: ${verticalShift.toPrecision(6)}`);
@@ -798,14 +802,16 @@ const chainsSketch = (p) => {
         // console.log(`case ¬, line ${cLine}`);
         pLines.push({
           "ws": cLine.search(/\S|$/),
-          "l": p.getCurrentLines(lIndex, 2)
+          "l": p.getCurrentLines(lIndex, 2),
+          "m": lIndex
         });
         // CASE: three-lines split: the previous line is the basis for cropping
       } else if (cLine[cLine.length - 1] === "|") {
         // console.log(`case |, line ${lines[lIndex - 1]}`);
         pLines.push({
           "ws": lines[lIndex - 1].search(/\S|$/),
-          "l": p.getCurrentLines(lIndex, 3)
+          "l": p.getCurrentLines(lIndex, 3),
+          "m": lIndex
         });
         // CASE: all others: : the main line is the basis for cropping
         // TODO: is this third branch necessary?
@@ -813,7 +819,8 @@ const chainsSketch = (p) => {
         // console.log(`case other, line ${cLine}`);
         pLines.push({
           "ws": cLine.search(/\S|$/),
-          "l": p.getCurrentLines(lIndex, 1)
+          "l": p.getCurrentLines(lIndex, 1),
+          "m": lIndex
         });
       }
     }
@@ -822,30 +829,48 @@ const chainsSketch = (p) => {
     //            - n° of lines - 1 for each group (n: current, np: previous, nn: next)
     //            - vertical shift (vp: previous, vn: next)
     for (let i = 0; i < pLines.length; i++) {
+
+      // console.log(pLines[i].l);
+
       // CASE: first
       if (i === 0) {
         pLines[i].tl = 0;
         pLines[i].tr = pLines[i + 1].ws * charWidth;
         pLines[i].n = pLines[i].l.length - 1;
-        pLines[i].np = pLines[i].l.length - 1;
         pLines[i].vp = 0;
-        pLines[i].vn = lineHeight * (pLines[i].l.length - 1); // desired shift: current n° lines - 1
+        // dreadful special case for two three-lines links shifted by one line (two | ending in a row)
+        if (pLines[i].n === 2 && pLines[i + 1].l.length - 1 === 2 &&  (pLines[i + 1].m - pLines[i].m) === 1) {
+          // console.log(`CASE init`);
+          pLines[i].vn = lineHeight * (pLines[i].n - 1); // desired shift: current n° lines - 1
+        } else {
+          pLines[i].vn = lineHeight * pLines[i].n; // desired shift: current n° lines - 1
+        }
+        // console.log(`l.length - 1: ${pLines[i].n}`);
         // CASE: last
       } else if (i === pLines.length - 1) {
         pLines[i].tl = pLines[i - 1].tr;
         pLines[i].tr = (pLines[i].l[pLines[i].l.length - 1].length - 1) * charWidth; // end of the text
         pLines[i].n = pLines[i].l.length - 1;
-        pLines[i].np = pLines[i - 1].l.length - 1;
         pLines[i].vp = pLines[i - 1].vn;
-        pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
+        pLines[i].vn = lineHeight * pLines[i].n;
+        // console.log(`l.length - 1: ${pLines[i].n}`);
         // CASE: all others
       } else {
         pLines[i].tl = pLines[i - 1].tr;
         pLines[i].tr = pLines[i + 1].ws * charWidth;
         pLines[i].n = pLines[i].l.length - 1;
-        pLines[i].np = pLines[i - 1].l.length - 1;
         pLines[i].vp = pLines[i - 1].vn;
-        pLines[i].vn = lineHeight * (pLines[i].l.length - 1);
+        // dreadful special case for two three-lines links shifted by one line (two | ending in a row)
+        if (pLines[i].n === 2 && pLines[i + 1].l.length - 1 === 2 &&  (pLines[i + 1].m - pLines[i].m) === 1) {
+          pLines[i].vn = lineHeight * (pLines[i].n - 1); // desired shift: current n° lines - 1
+          // console.log(`CASE pLines[${i}].vn: ${pLines[i].vn}`);
+        } else {
+          pLines[i].vn = lineHeight * pLines[i].n; // desired shift: current n° lines - 1
+        }
+        // pLines[i].vn = lineHeight * pLines[i].n;
+        // console.log(`l.length - 1: ${pLines[i].n}`);
+        pLines[i].vvn = lineHeight * (pLines[i + 1].m - pLines[i].m); // desired shift: differential between index of current and next markers
+        // console.log(`prev m: ${pLines[i - 1].m}, curr m: ${pLines[i].m}, next m: ${pLines[i + 1].m}`);
       }
       pLines[i].th = (pLines[i].tl + pLines[i].tr) / 2; // midpoint
       pLines[i].td = (pLines[i].tr - pLines[i].tl) / 4; // diff for fades
@@ -866,6 +891,7 @@ const chainsSketch = (p) => {
     // }
     // console.log("========================================");
 
+    // console.log(pLines);
     return pLines;
   }
 
