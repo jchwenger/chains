@@ -18,12 +18,11 @@ const alertSketch = (p) => {
 
   p.setup = () => {
     canvasSize = 700;
-    // https://dev.to/timhuang/a-simple-way-to-detect-if-browser-is-on-a-mobile-device-with-javascript-44j3
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      p.createCanvas(screen.availWidth - 40, screen.availHeight - 160);
-    } else {
-      p.createCanvas(screen.availWidth * 0.7, 400);
-    }
+
+    // Safari horror: the availWidth & availHeight do not seem to be swapped on device rotation...
+    const w = Math.min(screen.availWidth, screen.availHeight);
+    const h = Math.max(screen.availWidth, screen.availHeight);
+    p.createCanvas(w - 40, h - 160);
 
     margin = 40;
     lineHeight = canvasSize/25;
@@ -33,11 +32,14 @@ const alertSketch = (p) => {
   }
 
   p.draw = () => {
+
     p.background(255);
 
     p.textAlign(p.RIGHT);
     p.textSize(40);
     p.text("Chains", p.width - margin, margin);
+
+    // p.helperScreen();
 
     p.textAlign(p.LEFT);
     p.textSize(30);
@@ -48,6 +50,13 @@ const alertSketch = (p) => {
 
     // p.helperFrames();
 
+  }
+
+  p.helperScreen = () => {
+    p.textSize(10);
+    p.textAlign(p.LEFT);
+    p.fill(0);
+    p.text(`screen.availWidth: ${screen.availWidth}\nscreen.availHeight: ${screen.availHeight}`, margin, margin);
   }
 
   p.helperFrames = () => {
@@ -96,9 +105,12 @@ const chainsSketch = (p) => {
   let fileIndex;
   let processedFiles;
 
-  // home buttons
+  // home buttons, fullscreen business
   let homeButton;
   let homeLanguages;
+  let fsIcon;
+  let fsExitIcon;
+  let iOSSafari;
 
   // scrolling (reading)
   // -------------------
@@ -151,12 +163,18 @@ const chainsSketch = (p) => {
   p.setup = () => {
 
     canvasSize = 700;
-    // https://dev.to/timhuang/a-simple-way-to-detect-if-browser-is-on-a-mobile-device-with-javascript-44j3
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-      p.createCanvas(screen.availWidth - 80, screen.availHeight - 80);
-    } else {
-      p.createCanvas(screen.availWidth * 0.7, 400);
-    }
+
+    // Safari horror: the availWidth & availHeight do not seem to be swapped on device rotation...
+    const w = Math.max(screen.availWidth, screen.availHeight);
+    const h = Math.min(screen.availWidth, screen.availHeight);
+    p.createCanvas(Math.min(w - 110, 1200), Math.min(h - 90, 400));
+
+    // Safari annoyance: https://stackoverflow.com/a/29696509
+    const ua = window.navigator.userAgent;
+    const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
+    const webkit = !!ua.match(/WebKit/i);
+    iOSSafari = iOS && webkit && !ua.match(/CriOS/i);
+    // console.log(`is it Safari? iOSSafari: ${iOSSafari}`);
 
     halfWidth = p.width/2;
     margin = 40;
@@ -208,6 +226,7 @@ const chainsSketch = (p) => {
 
     if (!reading) {
       p.intro();
+      // p.helperScreen();
     } else {
       p.chain();
     }
@@ -329,17 +348,19 @@ const chainsSketch = (p) => {
     // Chains title
     p.text(homeButton.t[homeLanguages.c], p.width - margin, margin);
 
-    // fullscreen icon
-    let img;
-    if (p.fullscreen()) {
-      // console.log(`fsc exit icon`);
-      img = fsExitIcon;
-    } else {
-      // console.log(`fsc icon`);
-      img = fsIcon;
+    // fullscreen icon: Safari does not seem to support this
+    if (!iOSSafari) {
+      let img;
+      if (p.fullscreen()) {
+        // console.log(`fsc exit icon`);
+        img = fsExitIcon;
+      } else {
+        // console.log(`fsc icon`);
+        img = fsIcon;
+      }
+      // p.image(img, margin - img.width, p.height - margin, margin, p.height - margin + img.height);
+      p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
     }
-    // p.image(img, margin - img.width, p.height - margin, margin, p.height - margin + img.height);
-    p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
 
     // where is the mouse?
     if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
@@ -850,6 +871,14 @@ const chainsSketch = (p) => {
 
   // --------------------------------------------------------------------------------
   // helpers
+
+
+  p.helperScreen = () => {
+    p.textSize(10);
+    p.textAlign(p.LEFT);
+    p.fill(0);
+    p.text(`screen.availWidth: ${screen.availWidth}\nscreen.availHeight: ${screen.availHeight}`, margin, margin);
+  }
 
   p.helperFrames = () => {
 
