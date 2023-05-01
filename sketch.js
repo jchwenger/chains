@@ -358,7 +358,6 @@ const chainsSketch = (p) => {
         // console.log(`fsc icon`);
         img = fsIcon;
       }
-      // p.image(img, margin - img.width, p.height - margin, margin, p.height - margin + img.height);
       p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
     }
 
@@ -551,6 +550,13 @@ const chainsSketch = (p) => {
 
     p.shadingVertical();
 
+    // reading arrow
+    if (lineIndex === 0) {
+      p.writeArrow('→');
+    } else if (lineIndex === processedLines.length - 1) {
+      p.writeArrow('←');
+    }
+
   }
 
   p.writeLine = (l, h, alpha, verticalShift) => {
@@ -570,6 +576,23 @@ const chainsSketch = (p) => {
     p.textAlign(p.RIGHT);
     p.fill(0, alpha);
     p.text(l, w, h);
+    p.pop();
+  }
+
+  p.writeArrow = (arrow) => {
+    p.push();
+    p.textAlign(p.RIGHT);
+    p.textSize(15);
+    p.fill(0);
+    // left
+    if (arrow === '→') {
+      console.log(`arrow left`);
+      p.text(arrow, p.width - 15, p.height - 15);
+      // right
+    } else if (arrow === '←') {
+      console.log(`arrow right`);
+      p.text(arrow, p.width - 15, p.height - 15);
+    }
     p.pop();
   }
 
