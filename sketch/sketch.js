@@ -1106,6 +1106,10 @@ window.addEventListener(
   supportsPassive ? { passive: false } : false
 );
 
+// https://stackoverflow.com/a/50483933
+// referred to here: https://github.com/processing/p5.js/issues/5358#issuecomment-1465206865
+window.addEventListener('touchstart', {}); // in top window
+
 // Call the function to check the initial window orientation
 checkWindowOrientation();
 
