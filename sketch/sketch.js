@@ -72,7 +72,7 @@ const alertSketch = (p) => {
 
 }
 
-const sketch = (p) => {
+const chainsSketch = (p) => {
 
   let margin;
   let halfWidth;
@@ -1060,7 +1060,7 @@ function createAlertSketch() {
 
 function createSketch() {
   // Create a new p5.js sketch instance
-  sketchInstance = new p5(sketch);
+  sketchInstance = new p5(chainsSketch);
 }
 
 function removeSketch() {
