@@ -13,8 +13,11 @@
 - OK title when reading
 - OK scrolling details for language lists
 - OK chain titles, esp. lack of apostrophes in French
+- NO single font size based on display size, scrolling with stops at transitions!
 
-- single font size based on display size, scrolling with stops at transitions!
 - better monospace simulation
 - random choice (& animation?)
+- 'independent' mode (reading happens without human intervention?)
 - better transitions (! especially with long links, make sure there is always a window where only the current link is visible)
+- triple check that all chains are ok & that verticalShift bug is gone
+- better interaction when on desktop (using space/shift+space?)
