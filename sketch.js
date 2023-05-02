@@ -471,25 +471,46 @@ const chainsSketch = (p) => {
 
     // dragging logic
     if (dragging) {
-
       let deltaX = p.mouseX - previousMouseX;
       // Update the text position directly based on mouse movement
       xPosition += deltaX;
       // Record the last velocity for momentum when mouse is released
       xVelocity = deltaX;
-
     } else {
-
       // Apply xFriction to velocity when not dragging
       xVelocity *= xFriction;
       if (Math.abs(xVelocity) < 0.001) xVelocity = 0;
       // Update text position based on velocity for momentum
       xPosition += xVelocity;
-
     }
-
     // Update text position based on velocity
     xPosition += xVelocity;
+
+    // spacebar logic (continuous reading, with physics)
+    if (p.keyIsDown(32)) { // space
+      if (p.keyIsDown(p.SHIFT)) {
+        // console.log(`backward`);
+        const dX = 1;
+        xPosition += dX;
+        xVelocity = dX;
+        // console.log(` xVelocity: ${xVelocity}`);
+      } else {
+        // console.log(`forward`);
+        const dX = -1;
+        xPosition += dX;
+        xVelocity = dX;
+        // console.log(` xVelocity: ${xVelocity}`);
+      }
+    }
+
+    // arrow logic (continuous reading, no physics)
+    if (p.keyIsDown(p.LEFT_ARROW)) {
+      // console.log(`left arrow`);
+      xPosition += 1;
+    } else if (p.keyIsDown(p.RIGHT_ARROW)) {
+      // console.log(`right arrow`);
+      xPosition -= 1;
+    }
 
     // Constrain text position within boundaries
     xPosition = p.constrain(xPosition, rightBoundary, leftBoundary);
@@ -586,11 +607,11 @@ const chainsSketch = (p) => {
     p.fill(0);
     // left
     if (arrow === '→') {
-      console.log(`arrow left`);
+      // console.log(`arrow left`);
       p.text(arrow, p.width - 15, p.height - 15);
       // right
     } else if (arrow === '←') {
-      console.log(`arrow right`);
+      // console.log(`arrow right`);
       p.text(arrow, p.width - 15, p.height - 15);
     }
     p.pop();
@@ -1113,18 +1134,6 @@ const chainsSketch = (p) => {
   }
 
   p.keyPressed = () => {
-
-    // space
-    if (p.key === ' ') {
-      reading = !reading;
-    }
-
-    if (p.keyCode === p.LEFT_ARROW) {
-      xPosition -= 1;
-    } else if  (p.keyCode === p.RIGHT_ARROW) {
-      xPosition += 1;
-    }
-
   }
 
 }
