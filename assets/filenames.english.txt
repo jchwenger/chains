@@ -4,11 +4,12 @@ aquiferocious.chain.txt
 bad-blood.chain.txt
 baker-street.chain.txt
 being-and-time.chain.txt
-binge-drinking-socially.chain.txt
+binge-drinking.chain.txt
 bleeding-edge.chain.txt
 break-free-for-all.chain.txt
 canned-soup.chain.txt
 casino-royale.chain.txt
+clark-kent.chain.txt
 cold-turkey.chain.txt
 commonsensual.chain.txt
 cutting-edge.chain.txt
@@ -19,12 +20,13 @@ dirty-burger.chain.txt
 downfall-ill-will.chain.txt
 empath-dependency.chain.txt
 faff-about.chain.txt
-flash-in-the-panopticon.chain.txt
-flash-in-the-panthermonuclear.chain.txt
+flash-in-the-pan.1.chain.txt
+flash-in-the-pan.2.chain.txt
 fortune-cookie.chain.txt
 free-for-all.chain.txt
 green-new-dealing.chain.txt
 gun-shy-away.chain.txt
+handle-with-care.chain.txt
 hearsay.chain.txt
 hecatomb.chain.txt
 hindsightseeing.chain.txt
@@ -32,6 +34,7 @@ internet-troll.chain.txt
 juggernaughty.chain.txt
 just-in-time-to-kill.chain.txt
 klein-bottle.chain.txt
+kominternship.chain.txt
 lady-luck.chain.txt
 landed-gentry.chain.txt
 land-of-the-free.chain.txt
@@ -42,10 +45,8 @@ milton.2.chain.txt
 möbius-strip.chain.txt
 molotov-cocktail.chain.txt
 motherhood.chain.txt
-new-man-handle-with-care.chain.txt
-old-clark-kent-road.chain.txt
 pandora.chain.txt
-peek-a-boohooligandhi.chain.txt
+peek-a-boo.chain.txt
 pie-in-the-skyscraper.chain.txt
 pig-iron.chain.txt
 pol-pot-of-money.chain.txt
@@ -58,7 +59,6 @@ putinpot.chain.txt
 republican.chain.txt
 riddance.chain.txt
 riverrun.chain.txt
-romkominternship.chain.txt
 sacred-fire.chain.txt
 security-clearance.chain.txt
 start-from-scratch.chain.txt
@@ -67,7 +67,6 @@ take-your-piccadilly.chain.txt
 the-morning-after.chain.txt
 threadbareback.chain.txt
 tom-and-jerry.chain.txt
-tory.chain.txt
 toys-in-the-Hanseattic-league.chain.txt
 tug-of-war.chain.txt
 turbine-hall.chain.txt
