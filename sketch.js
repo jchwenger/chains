@@ -102,6 +102,7 @@ const chainsSketch = (p) => {
 
   // intro
   let reading;
+  let about;
   let fileIndex;
   let processedFiles;
 
@@ -193,6 +194,7 @@ const chainsSketch = (p) => {
     fileIndex = 0;
 
     reading = false;
+    about = false;
     dragging = false;
 
     yPosition = 0;
@@ -361,6 +363,15 @@ const chainsSketch = (p) => {
       p.image(img, 5, p.height - img.height/2 - 5, img.width/2, img.height/2);
     }
 
+    if (!reading) {
+      // question mark for about section
+      p.writeInCorners('?');
+
+      if (p.mouseX > p.width - margin && p.mouseX < p.width && p.mouseY > p.height - margin && p.mouseY < p.height) {
+        p.cursor('pointer');
+      }
+    }
+
     // where is the mouse?
     if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
       p.cursor('pointer');
@@ -371,57 +382,78 @@ const chainsSketch = (p) => {
 
   p.intro = () => {
 
-    // dragging logic
-    if (dragging) {
+    let j; // saving index outside the conditional scope
 
-      let deltaY = p.mouseY - previousMouseY;
-      // Update the text position directly based on mouse movement
-      yPosition += deltaY;
-      // Record the last velocity for momentum when mouse is released
-      yVelocity = deltaY;
+    if (about) {
+
+      p.push();
+      p.textSize(fileNamesSize);
+      p.textAlign(p.LEFT);
+      let t;
+      if (homeLanguages.c === 0) {
+        t = `This series of texts arose from a simple principle of concatenation, inspired by the concept of modulation in music: the initial, or final, fragment of word, phrase or snippet, if read independently, can be understood as respectively the end, or the beginning, of another word, phrase or snippet, with potentially no connection with the next, or previous, link – not unlike a pivot chord, that can be heard to have two functions at once, one in the source and one in the target key. A French nursery rhyme uses this idea generatively, and so do I.`;
+      } else {
+        t = `Cette série de textes émergea d'un principe simple de concaténation inspiré du concept de modulation en musique : un fragment initial, ou final, d'un mot, d'une expression ou d'un court texte, une fois lu indépendamment, peut être compris comme respectivement la fin, ou le commencement, d'un autre mot, d'une autre expression, ou d'un autre court texte, n'ayant potentiellement aucun rapport avec le maillon suivant, ou précédent – à l'instar de l'accord pivot, qui peut s'entendre sous deux aspects différents en même temps, une fois dans la tonalité de départ, l'autre dans celle d'arrivée. Une comptine utilise cette idée de manière générative, et moi aussi...`;
+      }
+      p.text(t, margin, margin + p.textAscent() + p.textDescent(), p.width * 2 / 3, p.height - 2 * margin);
+      p.fill(0);
+
+      p.pop();
 
     } else {
 
-      // Apply xFriction to velocity when not dragging
-      yVelocity *= yFriction;
-      if (Math.abs(yVelocity) < 0.001) yVelocity = 0;
-      // Update text position based on velocity for momentum
+      // dragging logic
+      if (dragging) {
+
+        let deltaY = p.mouseY - previousMouseY;
+        // Update the text position directly based on mouse movement
+        yPosition += deltaY;
+        // Record the last velocity for momentum when mouse is released
+        yVelocity = deltaY;
+
+      } else {
+
+        // Apply xFriction to velocity when not dragging
+        yVelocity *= yFriction;
+        if (Math.abs(yVelocity) < 0.001) yVelocity = 0;
+        // Update text position based on velocity for momentum
+        yPosition += yVelocity;
+
+      }
+
+      // Update text position based on velocity
       yPosition += yVelocity;
 
-    }
+      // Constrain text position within boundaries
+      yPosition = p.constrain(yPosition, topBoundary, bottomBoundary);
 
-    // Update text position based on velocity
-    yPosition += yVelocity;
+      p.push();
 
-    // Constrain text position within boundaries
-    yPosition = p.constrain(yPosition, topBoundary, bottomBoundary);
+      p.translate(0, yPosition);
 
-    p.push();
-
-    p.translate(0, yPosition);
-
-    p.textSize(fileNamesSize);
-    p.textAlign(p.LEFT);
-    p.fill(0);
-    for (let i = 0; i < files.length; i++) {
-      p.text(processedFiles[i].name, margin, processedFiles[i].yB);
-      // p.noFill();
-      // p.rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
-    }
-
-    // where is the mouse?
-    // If inside one of the file rectangles, ready to select
-    p.fill(0);
-    const mY = p.mouseY - yPosition; // allow for shifted Y position with scrolling
-    let j;
-    for (let i = 0; i < processedFiles.length; i++) {
-      if (mY > processedFiles[i].yRt && mY < processedFiles[i].yRt + processedFiles[i].yRh) {
-        j = i;
-        break;
+      p.textSize(fileNamesSize);
+      p.textAlign(p.LEFT);
+      p.fill(0);
+      for (let i = 0; i < files.length; i++) {
+        p.text(processedFiles[i].name, margin, processedFiles[i].yB);
+        // p.noFill();
+        // p.rect(margin, processedFiles[i].yRt, processedFiles[i].w, processedFiles[i].yRh);
       }
-    }
 
-    p.pop();
+      // where is the mouse?
+      // If inside one of the file rectangles, ready to select
+      p.fill(0);
+      const mY = p.mouseY - yPosition; // allow for shifted Y position with scrolling
+      for (let i = 0; i < processedFiles.length; i++) {
+        if (mY > processedFiles[i].yRt && mY < processedFiles[i].yRt + processedFiles[i].yRh) {
+          j = i;
+          break;
+        }
+      }
+
+      p.pop();
+
+    }
 
     // draw languages with a white background
     p.push();
@@ -573,9 +605,9 @@ const chainsSketch = (p) => {
 
     // reading arrow
     if (lineIndex === 0) {
-      p.writeArrow('→');
+      p.writeInCorners('→');
     } else if (lineIndex === processedLines.length - 1) {
-      p.writeArrow('←');
+      p.writeInCorners('←');
     }
 
   }
@@ -600,19 +632,19 @@ const chainsSketch = (p) => {
     p.pop();
   }
 
-  p.writeArrow = (arrow) => {
+  p.writeInCorners = (symbol) => {
     p.push();
     p.textAlign(p.RIGHT);
     p.textSize(15);
     p.fill(0);
     // left
-    if (arrow === '→') {
-      // console.log(`arrow left`);
-      p.text(arrow, p.width - 15, p.height - 15);
+    if (symbol === '→' || symbol === '?') {
+      // console.log(`symbol left`);
+      p.text(symbol, p.width - 15, p.height - 15);
       // right
-    } else if (arrow === '←') {
-      // console.log(`arrow right`);
-      p.text(arrow, p.width - 15, p.height - 15);
+    } else if (symbol === '←') {
+      // console.log(`symbol right`);
+      p.text(symbol, p.width - 15, p.height - 15);
     }
     p.pop();
   }
@@ -1096,6 +1128,14 @@ const chainsSketch = (p) => {
             // console.log(`pointer language ${i}`);
           }
         }
+      }
+
+      // toggle about if on the ? mark or clicking on the title
+      if (p.mouseX > p.width - margin && p.mouseX < p.width && p.mouseY > p.height - margin && p.mouseY < p.height) {
+        about = !about;
+      }
+      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
+        about = false;
       }
 
     } else {
