@@ -10,6 +10,7 @@ décalculminant.chain.txt
 déroute-des-indochine.chain.txt
 état-providence.chain.txt
 forces-de-l_ordre.chain.txt
+héloïse-et-abélard.chain.txt
 investisseur.chain.txt
 laisse-pas-traîner-ton-fils.chain.txt
 le-Céline-de-la-vie.chain.txt
