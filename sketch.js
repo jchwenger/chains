@@ -313,8 +313,8 @@ const chainsSketch = (p) => {
     const b = {
       't': t,
       'w': t.map(tt => p.textWidth(tt)),
-      'a': p.textAscent(t[0]),
-      'd':  p.textDescent(t[0]),
+      'a': p.textAscent(),
+      'd':  p.textDescent(),
     };
     p.pop();
     return b;
@@ -329,8 +329,8 @@ const chainsSketch = (p) => {
     p.push();
     p.textSize(languageNamesSize);
     l['w'] = l['l'].map(t => p.textWidth(t));
-    l['a'] = l['l'].map(t => p.textAscent(t));
-    l['h'] = l['l'].map(t => p.textAscent(t) + p.textDescent(t));
+    l['a'] = l['l'].map(t => p.textAscent());
+    l['h'] = l['l'].map(t => p.textAscent() + p.textDescent());
     p.pop();
     return l;
   }
@@ -830,8 +830,8 @@ const chainsSketch = (p) => {
         .replace('_', "'");
       f['w'] = p.textWidth(f['name']) + 5;
       f['yB'] = margin + (i + 1) * introLineHeight; // baseline
-      f['yRt'] = f['yB'] - p.textAscent(f['name']); // rectangle top
-      f['yRh'] = p.textAscent(f['name']) + p.textDescent(f['name']); // height
+      f['yRt'] = f['yB'] - p.textAscent(); // rectangle top
+      f['yRh'] = p.textAscent() + p.textDescent(); // height
       pFiles.push(f);
     }
     p.pop();
