@@ -382,47 +382,48 @@ const chainsSketch = (p) => {
 
   p.intro = () => {
 
-    let j; // saving index outside the conditional scope
+    // dragging logic
+    if (dragging) {
+
+      let deltaY = p.mouseY - previousMouseY;
+      // Update the text position directly based on mouse movement
+      yPosition += deltaY;
+      // Record the last velocity for momentum when mouse is released
+      yVelocity = deltaY;
+
+    } else {
+
+      // Apply xFriction to velocity when not dragging
+      yVelocity *= yFriction;
+      if (Math.abs(yVelocity) < 0.001) yVelocity = 0;
+      // Update text position based on velocity for momentum
+      yPosition += yVelocity;
+
+    }
+
+    // Update text position based on velocity
+    yPosition += yVelocity;
+
+    let j; // saving index outside the conditional scope below
 
     if (about) {
 
       p.push();
       p.textSize(fileNamesSize);
       p.textAlign(p.LEFT);
+      p.fill(0);
       let t;
       if (homeLanguages.c === 0) {
-        t = `This series of texts arose from a simple principle of concatenation, inspired by the concept of modulation in music: the initial, or final, fragment of word, phrase or snippet, if read independently, can be understood as respectively the end, or the beginning, of another word, phrase or snippet, with potentially no connection with the next, or previous, link – not unlike a pivot chord, that can be heard to have two functions at once, one in the source and one in the target key. A French nursery rhyme uses this idea generatively, and so do I.`;
+        t = `Behind these texts lies a simple concatenation principle, similar to musical modulation, where a pivot chord is used to shift from one key to the next – as well as a nursery rhyme from my childhood.`;
       } else {
-        t = `Cette série de textes émergea d'un principe simple de concaténation inspiré du concept de modulation en musique : un fragment initial, ou final, d'un mot, d'une expression ou d'un court texte, une fois lu indépendamment, peut être compris comme respectivement la fin, ou le commencement, d'un autre mot, d'une autre expression, ou d'un autre court texte, n'ayant potentiellement aucun rapport avec le maillon suivant, ou précédent – à l'instar de l'accord pivot, qui peut s'entendre sous deux aspects différents en même temps, une fois dans la tonalité de départ, l'autre dans celle d'arrivée. Une comptine utilise cette idée de manière générative, et moi aussi...`;
+        t = `Ces textes sont régis par un principe simple de concaténation inspiré de la modulation musicale, où un accord pivot permet de passer d'une tonalité à une autre – ainsi que d'une comptine de mon enfance.`;
       }
-      p.text(t, margin, margin + p.textAscent() + p.textDescent(), p.width * 2 / 3, p.height - 2 * margin);
-      p.fill(0);
+
+      p.text(t, margin, margin + p.textAscent() + p.textDescent(), p.width - 2 * margin - homeButton.w[homeLanguages.c]);
 
       p.pop();
 
     } else {
-
-      // dragging logic
-      if (dragging) {
-
-        let deltaY = p.mouseY - previousMouseY;
-        // Update the text position directly based on mouse movement
-        yPosition += deltaY;
-        // Record the last velocity for momentum when mouse is released
-        yVelocity = deltaY;
-
-      } else {
-
-        // Apply xFriction to velocity when not dragging
-        yVelocity *= yFriction;
-        if (Math.abs(yVelocity) < 0.001) yVelocity = 0;
-        // Update text position based on velocity for momentum
-        yPosition += yVelocity;
-
-      }
-
-      // Update text position based on velocity
-      yPosition += yVelocity;
 
       // Constrain text position within boundaries
       yPosition = p.constrain(yPosition, topBoundary, bottomBoundary);
