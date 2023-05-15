@@ -84,6 +84,7 @@ const alertSketch = (p) => {
 const chainsSketch = (p) => {
 
   let margin;
+  let doubleMargin;
   let halfWidth;
 
   // text business
@@ -179,6 +180,7 @@ const chainsSketch = (p) => {
 
     halfWidth = p.width/2;
     margin = 40;
+    doubleMargin = margin * 2;
     chainHeight = margin + (p.height - margin) / 2;
 
     p.fill(0)
@@ -367,7 +369,15 @@ const chainsSketch = (p) => {
       // question mark for about section
       p.writeInCorners('?');
 
-      if (p.mouseX > p.width - margin && p.mouseX < p.width && p.mouseY > p.height - margin && p.mouseY < p.height) {
+      // // helper rectangle
+      // p.push();
+      // p.noFill();
+      // p.stroke(200);
+      // p.rect(p.width - doubleMargin, p.height - doubleMargin, doubleMargin, doubleMargin);
+      // p.pop();
+
+      // where is the mouse? (about button)
+      if (p.mouseX > p.width - doubleMargin && p.mouseY > p.height - doubleMargin) {
         p.cursor('pointer');
       }
     }
@@ -1131,8 +1141,8 @@ const chainsSketch = (p) => {
         }
       }
 
-      // toggle about if on the ? mark or clicking on the title
-      if (p.mouseX > p.width - margin && p.mouseX < p.width && p.mouseY > p.height - margin && p.mouseY < p.height) {
+      // toggle about if on the ? mark or clicking on the title, being generous about the area
+      if (p.mouseX > p.width - doubleMargin && p.mouseY > p.height - doubleMargin) {
         about = !about;
       }
       if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
