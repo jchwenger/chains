@@ -614,7 +614,7 @@ const chainsSketch = (p) => {
 
     p.shadingVertical();
 
-    // reading arrow
+    // scrolling hints
     if (lineIndex === 0) {
       p.writeInCorners('→');
     } else if (lineIndex === processedLines.length - 1) {
@@ -646,16 +646,22 @@ const chainsSketch = (p) => {
   p.writeInCorners = (symbol) => {
     p.push();
     p.textAlign(p.RIGHT);
-    p.textSize(15);
+    p.textSize(fileNamesSize);
     p.fill(0);
+    // about
+    if (symbol === '?') {
+      // p.text(symbol, p.width - 15, p.height - 15);
+      p.text(symbol, p.width - margin, p.height - margin + p.textAscent());
     // left
-    if (symbol === '→' || symbol === '?') {
+    } else if (symbol === '→') {
       // console.log(`symbol left`);
-      p.text(symbol, p.width - 15, p.height - 15);
+      const t = `scroll ${symbol}`;
+      p.text(t, p.width - margin, p.height - margin + p.textAscent());
       // right
     } else if (symbol === '←') {
       // console.log(`symbol right`);
-      p.text(symbol, p.width - 15, p.height - 15);
+      const t = `${symbol} scroll`;
+      p.text(t, p.width - margin, p.height - margin + p.textAscent());
     }
     p.pop();
   }
