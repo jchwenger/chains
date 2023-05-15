@@ -615,10 +615,23 @@ const chainsSketch = (p) => {
 
     // chain title
     p.push();
+
     p.textFont(fontItalic);
     p.textAlign(p.LEFT);
     p.textSize(fileNamesSize);
     p.text(processedFiles[fileIndex].name, margin, margin);
+
+    // // helper rectangle
+    // p.noFill();
+    // p.stroke(200);
+    // p.rect(margin, margin - p.textAscent(), p.textWidth(processedFiles[fileIndex].name), p.textAscent() + p.textDescent());
+
+    // mouse inside the chain title
+    if (p.mouseY < margin + p.textAscent() && p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name)) {
+      p.cursor('pointer');
+      p.text(`${p.mouseX}, ${p.mouseY}`, p.mouseX, p.mouseY);
+    }
+
     p.pop();
 
     p.shadingVertical();
@@ -1166,8 +1179,12 @@ const chainsSketch = (p) => {
       }
 
     } else {
-      // while reading a chain, clicking on the title brings you back to the home page
+      // while reading a chain, clicking on the home button or the chain title brings you back to the home page
       if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseY < margin + homeButton.d) {
+        reading = false;
+      }
+      // chain tile
+      if (p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name) && p.mouseY < margin) {
         reading = false;
       }
     }
