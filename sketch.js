@@ -629,7 +629,7 @@ const chainsSketch = (p) => {
     // mouse inside the chain title
     if (p.mouseY < margin + p.textAscent() && p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name)) {
       p.cursor('pointer');
-      p.text(`${p.mouseX}, ${p.mouseY}`, p.mouseX, p.mouseY);
+      // p.text(`${p.mouseX}, ${p.mouseY}`, p.mouseX, p.mouseY);
     }
 
     p.pop();
