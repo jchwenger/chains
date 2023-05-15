@@ -100,12 +100,15 @@ const chainsSketch = (p) => {
   let lineIndex;
   let charWidth;
   let processedLines;
+  let fadedGrey;
 
   // intro
   let reading;
   let about;
   let fileIndex;
   let processedFiles;
+  let hasRead;
+  let hasScrolled;
 
   // home buttons, fullscreen business
   let homeButton;
@@ -198,6 +201,9 @@ const chainsSketch = (p) => {
     reading = false;
     about = false;
     dragging = false;
+    hasRead = false;
+    hasScrolled = false;
+    fadedGrey = 150;
 
     yPosition = 0;
     yVelocity = 0;
@@ -451,6 +457,7 @@ const chainsSketch = (p) => {
 
       p.translate(0, yPosition);
 
+      // draw filenames
       p.textSize(fileNamesSize);
       p.textAlign(p.LEFT);
       p.fill(0);
@@ -496,6 +503,17 @@ const chainsSketch = (p) => {
       p.pop();
     }
     p.pop();
+
+    // draw indications on usability
+    if (!hasRead) {
+      p.push();
+      p.fill(fadedGrey);
+      p.textAlign(p.RIGHT);
+      p.textSize(languageNamesSize);
+      p.text('↕ scroll up/down', p.width - margin, p.height - margin - lineHeight - homeButton.d);
+      p.text('← click to read', p.width - margin, p.height - margin - homeButton.d);
+      p.pop()
+    }
 
     // mouse inside one of the files
     if (j != null && p.mouseX > margin && p.mouseX < margin + processedFiles[j].w) {
@@ -627,7 +645,7 @@ const chainsSketch = (p) => {
     // p.rect(margin, margin - p.textAscent(), p.textWidth(processedFiles[fileIndex].name), p.textAscent() + p.textDescent());
 
     // mouse inside the chain title
-    if (p.mouseY < margin + p.textAscent() && p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name)) {
+    if (p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name) && p.mouseY < margin + p.textDescent()) {
       p.cursor('pointer');
       // p.text(`${p.mouseX}, ${p.mouseY}`, p.mouseX, p.mouseY);
     }
@@ -637,10 +655,12 @@ const chainsSketch = (p) => {
     p.shadingVertical();
 
     // scrolling hints
-    if (lineIndex === 0) {
-      p.writeInCorners('→');
-    } else if (lineIndex === processedLines.length - 1) {
-      p.writeInCorners('←');
+    if (!hasScrolled) {
+      if (lineIndex === 0) {
+        p.writeInCorners('→');
+      } else if (lineIndex === processedLines.length - 1) {
+        p.writeInCorners('←');
+      }
     }
 
   }
@@ -669,18 +689,20 @@ const chainsSketch = (p) => {
     p.push();
     p.textAlign(p.RIGHT);
     p.textSize(fileNamesSize);
-    p.fill(0);
     // about
     if (symbol === '?') {
+      p.fill(0);
       // p.text(symbol, p.width - 15, p.height - 15);
       p.text(symbol, p.width - margin, p.height - margin + p.textAscent());
     // left
     } else if (symbol === '→') {
+      p.fill(fadedGrey);
       // console.log(`symbol left`);
       const t = `scroll ${symbol}`;
       p.text(t, p.width - margin, p.height - margin + p.textAscent());
       // right
     } else if (symbol === '←') {
+      p.fill(fadedGrey);
       // console.log(`symbol right`);
       const t = `${symbol} scroll`;
       p.text(t, p.width - margin, p.height - margin + p.textAscent());
@@ -844,6 +866,7 @@ const chainsSketch = (p) => {
 
   p.backToReading = () => {
     reading = true;
+    hasRead = true; // we go back to the main menu, the user has read at least one chain
     // console.log(`back to reading`);
   }
   p.loadNewFile = (i) => {
@@ -1141,6 +1164,8 @@ const chainsSketch = (p) => {
 
   p.mouseClicked = () => {
 
+    p.push();
+
     if (!reading) {
 
       // file selection
@@ -1182,10 +1207,13 @@ const chainsSketch = (p) => {
       // while reading a chain, clicking on the home button or the chain title brings you back to the home page
       if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseY < margin + homeButton.d) {
         reading = false;
+        hasScrolled = true; // we assume then the user has scrolled
       }
+      p.textSize(fileNamesSize); // make sure the textDescent is at the right size
       // chain tile
-      if (p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name) && p.mouseY < margin) {
+      if (p.mouseX < margin + p.textWidth(processedFiles[fileIndex].name) && p.mouseY < margin + p.textDescent()) {
         reading = false;
+        hasScrolled = true; // we assume then the user has scrolled
       }
     }
 
@@ -1195,6 +1223,7 @@ const chainsSketch = (p) => {
       p.fullscreen(!fs);
     }
 
+    p.pop();
   }
 
   p.mousePressed = () => {
