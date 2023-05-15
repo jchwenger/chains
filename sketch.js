@@ -35,9 +35,9 @@ const alertSketch = (p) => {
 
     p.background(255);
 
-    p.textAlign(p.RIGHT);
-    p.textSize(40);
-    p.text("Chains", p.width - margin, margin);
+    p.textSize(60);
+    p.textAlign(p.CENTER, p.CENTER);
+    p.text("Chains", p.width / 2, p.height/3);
 
     // p.helperScreen();
 
