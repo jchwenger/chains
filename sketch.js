@@ -382,8 +382,17 @@ const chainsSketch = (p) => {
       }
     }
 
+    // home button
+
+    // // helper rectangle
+    // p.push();
+    // p.noFill();
+    // p.stroke(200);
+    // p.rect(p.width - margin - homeButton.w[homeLanguages.c], 1, margin + homeButton.w[homeLanguages.c], margin + homeButton.d);
+    // p.pop();
+
     // where is the mouse?
-    if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) { // chains
+    if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseY < margin + homeButton.d) { // chains
       p.cursor('pointer');
       // console.log(`pointer chains`);
     }
@@ -1151,13 +1160,14 @@ const chainsSketch = (p) => {
       if (p.mouseX > p.width - doubleMargin && p.mouseY > p.height - doubleMargin) {
         about = !about;
       }
-      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
+      // go back to home page when clicking on the home button
+      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseY < margin + homeButton.d) {
         about = false;
       }
 
     } else {
       // while reading a chain, clicking on the title brings you back to the home page
-      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseX < p.width - margin && p.mouseY > margin - homeButton.a && p.mouseY < margin + homeButton.d) {
+      if (p.mouseX > p.width - margin - homeButton.w[homeLanguages.c] && p.mouseY < margin + homeButton.d) {
         reading = false;
       }
     }
